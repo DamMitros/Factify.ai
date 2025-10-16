@@ -1,0 +1,28 @@
+services:
+  backend:
+    build: backend
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend/src:/app
+    networks:
+      - default
+  
+  cron:
+    build: cron
+    env_file:
+      - .env
+    volumes:
+      - ./cron/src:/app
+    networks:
+      - default
+
+  frontend:
+    build: frontend
+    networks:
+      - default
+
+networks:
+  default:
