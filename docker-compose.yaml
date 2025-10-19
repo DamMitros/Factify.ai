@@ -1,5 +1,6 @@
 services:
   backend:
+    container_name: backend
     build: backend
     env_file:
       - .env
@@ -11,6 +12,7 @@ services:
       - default
   
   cron:
+    container_name: cron
     build: cron
     env_file:
       - .env
@@ -20,7 +22,10 @@ services:
       - default
 
   frontend:
+    container_name: frontend
     build: frontend
+    ports:
+      - "8081:3000"
     networks:
       - default
 
