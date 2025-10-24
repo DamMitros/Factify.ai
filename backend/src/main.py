@@ -2,6 +2,7 @@ from flask import Flask, Blueprint
 
 import config
 from routes.example import example_bp
+from routes.nlp import nlp_bp
 
 app = Flask(__name__)
 
@@ -11,7 +12,7 @@ def register_route(path: str, blueprint: Blueprint):
 
 
 register_route("/example", example_bp)
-
+register_route("/nlp", nlp_bp)
 
 @app.route("/")
 def index():
