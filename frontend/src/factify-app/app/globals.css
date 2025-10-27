@@ -73,26 +73,26 @@ body {
 
 .bubble1{
   background: radial-gradient(circle, var(--b1) , transparent 200px);
-  height: 400px;
-  width: 400px;
+  height: 700px;
+  width: 700px;
   top:40%;
   left:55%;
   transform-origin: calc(50% - 180px) calc(50% - 80px);
   animation: moveInCircle 60s linear infinite;
 }
 .bubble2{
-  background: radial-gradient(circle, var(--b2) , transparent 250px);
-  height: 500px;
-  width: 500px;
+  background: radial-gradient(circle, var(--b2) , transparent 390px);
+  height: 800px;
+  width: 800px;
   top: 30%;
   left:30%;
   transform-origin: calc(50% + 220px) calc(50% + 40px);
   animation: moveInCircle 60s linear reverse infinite;
 }
 .bubble3{
-  background: radial-gradient(circle, var(--b3), transparent 100px);
-  height: 250px;
-  width: 250px;
+  background: radial-gradient(circle, var(--b3), transparent 250px);
+  height: 550px;
+  width: 550px;
   top:30%;
   left:30%;
   transform-origin: calc(50% - 120px) calc(50% + 60px);
@@ -100,9 +100,9 @@ body {
 }
 
 .bubble4{
-  background: radial-gradient(circle, var(--b4), transparent 230px);
-  height: 600px;
-  width: 600px;
+  background: radial-gradient(circle, var(--b4), transparent 430px);
+  height: 1000px;
+  width: 1000px;
   top:50%;
   left:65%;
   transform-origin: calc(50% - 300px) calc(50% - 200px);
@@ -110,9 +110,9 @@ body {
   overflow: hidden;
 }
 .bubble5{
-  background: radial-gradient(circle, var(--b5) , transparent 120px);
-  height: 350px;
-  width: 350px;
+  background: radial-gradient(circle, var(--b5) , transparent 300px);
+  height: 650px;
+  width: 650px;
   top:45%;
   left:35%;
   transform-origin: calc(50% + 140px) calc(50% - 100px);
@@ -120,9 +120,9 @@ body {
 }
 
 .bubble6{
-  background: radial-gradient(circle, var(--b6) , transparent 320px);
-  height: 650px;
-  width: 650px;
+  background: radial-gradient(circle, var(--b6) , transparent 500px);
+  height: 1150px;
+  width: 1150px;
   top:60%;
   left:35%;
   z-index: 1;
@@ -168,9 +168,35 @@ body {
 
 h1,h3{
   position:fixed;
-  top:30%;
+  top:20%;
  
   width: 100%;
   text-align: center;
   font-size: 50px;
+}
+
+.buttonBubbles{
+  position: fixed;
+  inset: 0;        
+  margin: auto;     
+
+  width: 600px;
+  height: 300px;
+  pointer-events: none;
+  z-index: 9998;
+  background: transparent;
+  display: flex;
+  justify-content: space-evenly;
+}
+
+.buttonBubble{
+  border-radius: 50%;
+  height: 100px;
+  width: 100px;
+  background: white;
+  opacity: 0.8; 
+  color:black;
+
+  
+
 }
