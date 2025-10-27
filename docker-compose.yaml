@@ -1,29 +1,37 @@
 services:
   backend:
     container_name: backend
-    build: backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     env_file:
       - .env
     ports:
       - "8080:8080"
     volumes:
       - ./backend/src:/app
+      - ./common:/modules/common
     networks:
       - default
   
   cron:
     container_name: cron
-    build: cron
+    build:
+      context: .
+      dockerfile: cron/Dockerfile
     env_file:
       - .env
     volumes:
       - ./cron/src:/app
+      - ./common:/modules/common
     networks:
       - default
 
   frontend:
     container_name: frontend
-    build: frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     ports:
       - "8081:3000"
     networks:

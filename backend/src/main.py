@@ -1,9 +1,12 @@
 from flask import Flask, Blueprint
 
 import config
-from routes.example import example_bp
+from routes import example_bp
+from common.python import db
 
 app = Flask(__name__)
+
+db.init_app(app)
 
 
 def register_route(path: str, blueprint: Blueprint):
