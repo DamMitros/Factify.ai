@@ -4,6 +4,7 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    restart: on-failure
     env_file:
       - .env
     ports:
@@ -13,12 +14,14 @@ services:
       - ./common:/modules/common
     networks:
       - default
+      - auth
   
   cron:
     container_name: cron
     build:
       context: .
       dockerfile: cron/Dockerfile
+    restart: on-failure
     env_file:
       - .env
     ports:
@@ -35,10 +38,9 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
     ports:
-      - "8081:3000"
+      - "3000:3000"
     networks:
       - default
-  
 
   mongodb:
     container_name: mongodb
@@ -54,8 +56,8 @@ services:
     networks:
       - default
 
-
   keycloak:
+    container_name: keycloak
     image: quay.io/keycloak/keycloak:26.0.0
     env_file:
       - .env
@@ -73,8 +75,11 @@ services:
       - "${KEYCLOAK_PORT}:8080"
     depends_on:
       - keycloak-db
+    networks:
+      - auth
 
   keycloak-db:
+    container_name: keycloak-db
     image: postgres:16
     env_file:
       - .env
@@ -84,9 +89,12 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_DB_PASSWORD}
     volumes:
       - keycloak_data:/var/lib/postgresql/data
+    networks:
+      - auth
 
 networks:
   default:
+  auth:
 
 volumes:
   mongodb_data:
