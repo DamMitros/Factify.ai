@@ -16,6 +16,8 @@ services:
     build: cron
     env_file:
       - .env
+    ports:
+      - "8081:8080"
     volumes:
       - ./cron/src:/app
     networks:
