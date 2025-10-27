@@ -1,6 +1,6 @@
 .idea/
 .env
-
 *notes*
 *Karta*
-**/trained_models/*.pt
+**old**
+**/.DS_Store
