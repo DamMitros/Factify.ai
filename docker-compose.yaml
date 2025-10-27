@@ -44,8 +44,40 @@ services:
     networks:
       - default
 
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.0
+    env_file:
+      - .env
+    environment:
+      - KC_BOOTSTRAP_ADMIN_USERNAME=${KEYCLOAK_ADMIN_USERNAME} #to konto tymczasowe - utwórz stałe
+      - KC_BOOTSTRAP_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD}
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://keycloak-db:5432/${POSTGRES_DB_NAME}
+      - KC_DB_USERNAME=${POSTGRES_DB_USERNAME}
+      - KC_DB_PASSWORD=${POSTGRES_DB_PASSWORD}
+      - KC_HOSTNAME=localhost
+    command:
+      - start-dev
+    ports:
+      - "${KEYCLOAK_PORT}:8080"
+    depends_on:
+      - keycloak-db
+
+  keycloak-db:
+    image: postgres:16
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
+      - POSTGRES_USER=${POSTGRES_DB_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_DB_PASSWORD}
+    volumes:
+      - keycloak_data:/var/lib/postgresql/data
+
 networks:
   default:
 
 volumes:
   mongodb_data:
+  keycloak_data:
