@@ -24,14 +24,22 @@ def _cli_train(args: argparse.Namespace) -> None:
 		random_state=args.random_state,
 		output_model_path=args.output_model_path,
 		metrics_path=args.metrics_path,
-		confusion_matrix_path=args.confusion_matrix_path
+		confusion_matrix_path=args.confusion_matrix_path,
+		run_name=args.run_name
 	)
 	training_duration = time.time() - start_time
 	print(f"Training finished after {training_duration:.2f} seconds. Artifacts saved to:")
+	print(f"  - run: {artifacts.run_name}")
 	print(f"  - model: {artifacts.model_path}")
 	print(f"  - metrics: {artifacts.metrics_path}")
 	print(f"  - confusion matrix: {artifacts.confusion_matrix_path}")
-
+	print(f"  - params: {artifacts.params_path}")
+	print(f"  - dataset stats: {artifacts.dataset_stats_path}")
+	print(f"  - length metrics: {artifacts.length_metrics_path}")
+	if artifacts.fails_path:
+		print(f"  - fails: {artifacts.fails_path}")
+	print(f"  - report dir: {artifacts.report_dir}")
+     
 def _cli_evaluate(args: argparse.Namespace) -> None:
 	metrics = evaluate_saved_model(
 		data_path=args.data_path,
@@ -76,6 +84,8 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument("--random-state", type=int, default=42, help="Seed podziału danych")
 	parser.add_argument("--sample-size", type=float, default=None, help="Proporcja danych używanych do ewaluacji (tylko evaluate)")
 	parser.add_argument("--text", type=str, help="Tekst do predykcji (tylko predict)")
+	parser.add_argument("--run-name", type=str, default=None, help="Prefiks runu. Jeśli brak wygeneruje się dzisiejsza data.")
+	
 	return parser
 
 def dispatch_cli(args: argparse.Namespace) -> None:

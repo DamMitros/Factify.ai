@@ -1,27 +1,43 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import numpy as np, torch
 from transformers import AutoModelForSequenceClassification, get_linear_schedule_with_warmup
 
 from .config import (
-	DEFAULT_CONFUSION_MATRIX_PATH,
 	DEFAULT_DATA_PATH,
-	DEFAULT_METRICS_PATH,
-	DEFAULT_MODEL_PATH,
 	NLP_MODEL_NAME,
 	NUM_LABELS
 )
 from .data import create_dataloaders, prepare_splits
 from .evaluation import evaluate_model
 from .model_utils import get_device, load_model_artifacts
-from .reporting import plot_confusion_matrix, save_metrics
+from .artifacts import RunArtifactPaths, build_run_artifact_paths, generate_run_name
+from .analysis import (
+	compute_dataset_stats,
+	compute_length_bucket_metrics,
+)
+from .reporting import (
+	plot_confusion_matrix,
+	save_dataset_stats,
+	save_fails,
+	save_length_metrics,
+	save_metrics,
+	save_params,
+)
 
 @dataclass
 class TrainingArtifacts:
+	run_name: str
 	model_path: Path
 	metrics_path: Path
 	confusion_matrix_path: Path
+	params_path: Path
+	dataset_stats_path: Path
+	length_metrics_path: Path
+	report_dir: Path
+	fails_path: Optional[Path]
 
 def train_model(
 	data_path: Path | str = DEFAULT_DATA_PATH,
@@ -34,12 +50,23 @@ def train_model(
 	max_length: int = 128,
 	test_size: float = 0.2,
 	random_state: int = 42,
-	output_model_path: Path | str = DEFAULT_MODEL_PATH,
-	metrics_path: Path | str = DEFAULT_METRICS_PATH,
-	confusion_matrix_path: Path | str = DEFAULT_CONFUSION_MATRIX_PATH
+	output_model_path: Path | str | None = None,
+	metrics_path: Path | str | None = None,
+	confusion_matrix_path: Path | str | None = None,
+	run_name: str | None = None
 ) -> TrainingArtifacts:
 	device = get_device()
 	tokenizer, _ = load_model_artifacts(force_reload=True, device=device)
+
+	resolved_run_name = run_name or generate_run_name()
+	run_paths = build_run_artifact_paths(resolved_run_name)
+
+	model_output_path = Path(output_model_path) if output_model_path is not None else run_paths.model_path
+	metrics_output_path = Path(metrics_path) if metrics_path is not None else run_paths.metrics_path
+	confusion_output_path = Path(confusion_matrix_path) if confusion_matrix_path is not None else run_paths.confusion_matrix_path
+
+	for parent in {model_output_path.parent, metrics_output_path.parent, confusion_output_path.parent}:
+		parent.mkdir(parents=True, exist_ok=True)
 
 	train_frame, test_frame = prepare_splits(data_path, test_size=test_size, random_state=random_state)
 	train_loader, test_loader = create_dataloaders(
@@ -49,6 +76,7 @@ def train_model(
 		max_length=max_length,
 		batch_size=batch_size
 	)
+	dataset_stats = compute_dataset_stats(train_frame, test_frame)
 
 	model = AutoModelForSequenceClassification.from_pretrained(NLP_MODEL_NAME, num_labels=NUM_LABELS)
 	model.to(device)
@@ -84,22 +112,47 @@ def train_model(
 		print(f"Epoch {epoch + 1}/{epochs} — training loss: {avg_loss:.4f}")
 
 	metrics = evaluate_model(model, test_loader, device=device)
+	torch.save(model.state_dict(), model_output_path)
+	save_metrics(metrics["report"], metrics["accuracy"], metrics_output_path)
+	plot_confusion_matrix(metrics["confusion_matrix"], ["human", "generated"], confusion_output_path)
+	save_dataset_stats(dataset_stats, run_paths.dataset_stats_path)
+	length_metrics = compute_length_bucket_metrics(metrics.get("records", []))
+	save_length_metrics(length_metrics, run_paths.length_metrics_path)
+	params_payload = {
+		"run_name": resolved_run_name,
+		"model_name": NLP_MODEL_NAME,
+		"num_labels": NUM_LABELS,
+		"hyperparameters": {
+			"epochs": epochs,
+			"batch_size": batch_size,
+			"learning_rate": learning_rate,
+			"weight_decay": weight_decay,
+			"warmup_ratio": warmup_ratio,
+			"max_length": max_length,
+		},
+		"data": {
+			"path": str(Path(data_path)),
+			"test_size": test_size,
+			"random_state": random_state,
+		},
+	}
+	save_params(params_payload, run_paths.params_path)
+	fails_records = [record for record in metrics.get("records", []) if record.get("true_label") != record.get("pred_label")]
+	fails_path: Optional[Path] = None
+	if fails_records:
+		save_fails(fails_records, run_paths.fails_path)
+		fails_path = run_paths.fails_path
 
-	output_model_path = Path(output_model_path)
-	output_model_path.parent.mkdir(parents=True, exist_ok=True)
-	torch.save(model.state_dict(), output_model_path)
-
-	metrics_path = Path(metrics_path)
-	metrics_path.parent.mkdir(parents=True, exist_ok=True)
-	save_metrics(metrics["report"], metrics["accuracy"], metrics_path)
-
-	confusion_matrix_path = Path(confusion_matrix_path)
-	confusion_matrix_path.parent.mkdir(parents=True, exist_ok=True)
-	plot_confusion_matrix(metrics["confusion_matrix"], ["human", "generated"], confusion_matrix_path)
-	load_model_artifacts(force_reload=True, device=device)
+	load_model_artifacts(model_path=model_output_path, force_reload=True, device=device)
 
 	return TrainingArtifacts(
-		model_path=output_model_path,
-		metrics_path=metrics_path,
-		confusion_matrix_path=confusion_matrix_path
+		run_name=resolved_run_name,
+		model_path=model_output_path,
+		metrics_path=metrics_output_path,
+		confusion_matrix_path=confusion_output_path,
+		params_path=run_paths.params_path,
+		dataset_stats_path=run_paths.dataset_stats_path,
+		length_metrics_path=run_paths.length_metrics_path,
+		report_dir=run_paths.report_dir,
+		fails_path=fails_path
 	)
