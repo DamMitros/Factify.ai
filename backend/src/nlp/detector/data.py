@@ -26,6 +26,7 @@ class EssayDataset(Dataset):
 		)
 		item = {key: value.squeeze(0) for key, value in encoding.items()}
 		item["labels"] = torch.tensor(int(row["generated"]), dtype=torch.long)
+		item["sample_id"] = torch.tensor(idx, dtype=torch.long)
 		return item
 
 def prepare_splits(data_path: Path | str, *, test_size: float, random_state: int) -> Tuple[pd.DataFrame, pd.DataFrame]:

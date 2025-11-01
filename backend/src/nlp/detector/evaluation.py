@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import numpy as np, pandas as pd, torch
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
@@ -16,10 +16,18 @@ def evaluate_model(model: torch.nn.Module, data_loader: DataLoader, *, device: t
 	predictions: list[int] = []
 	targets: list[int] = []
 	losses: list[float] = []
+	prob_records: List[Dict[str, object]] = []
+	dataset = getattr(data_loader, "dataset", None)
+	dataset_frame = getattr(dataset, "frame", None)
 
 	with torch.no_grad():
 		for batch in data_loader:
 			batch = {key: value.to(device) for key, value in batch.items()}
+			sample_ids = batch.get("sample_id")
+			if sample_ids is not None:
+				sample_ids_list = sample_ids.detach().cpu().tolist()
+			else:
+				sample_ids_list = [None] * batch["labels"].shape[0]
 			outputs = model(
 				input_ids=batch["input_ids"],
 				attention_mask=batch["attention_mask"],
@@ -27,8 +35,24 @@ def evaluate_model(model: torch.nn.Module, data_loader: DataLoader, *, device: t
 			)
 			losses.append(outputs.loss.item())
 			logits = outputs.logits.detach().cpu()
-			predictions.extend(torch.argmax(logits, dim=1).tolist())
-			targets.extend(batch["labels"].detach().cpu().tolist())
+			batch_predictions = torch.argmax(logits, dim=1).tolist()
+			predictions.extend(batch_predictions)
+			target_batch = batch["labels"].detach().cpu().tolist()
+			targets.extend(target_batch)
+			probabilities = torch.softmax(outputs.logits, dim=1).detach().cpu().tolist()
+			for sid, true_label, pred_label, probs in zip(sample_ids_list, target_batch, batch_predictions, probabilities):
+				record: Dict[str, object] = {
+					"sample_id": None if sid is None else int(sid),
+					"true_label": int(true_label),
+					"pred_label": int(pred_label),
+					"prob_generated": float(probs[1]),
+					"prob_human": float(probs[0])
+				}
+				if dataset_frame is not None and sid is not None:
+					text = dataset_frame.iloc[sid]["text"]
+					record["text"] = str(text)
+					record["word_count"] = len(str(text).split())
+				prob_records.append(record)
 
 	cm = confusion_matrix(targets, predictions)
 	report = classification_report(targets, predictions, target_names=["human", "generated"], output_dict=True)
@@ -38,7 +62,8 @@ def evaluate_model(model: torch.nn.Module, data_loader: DataLoader, *, device: t
 		"loss": float(np.mean(losses)) if losses else 0.0,
 		"accuracy": float(accuracy),
 		"report": report,
-		"confusion_matrix": cm
+		"confusion_matrix": cm,
+		"records": prob_records
 	}
 
 
