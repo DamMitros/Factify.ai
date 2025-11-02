@@ -21,6 +21,7 @@ def _cli_train(args: argparse.Namespace) -> None:
 		warmup_ratio=args.warmup_ratio,
 		max_length=args.max_length,
 		test_size=args.test_size,
+		calibration_size=args.calibration_size,
 		random_state=args.random_state,
 		output_model_path=args.output_model_path,
 		metrics_path=args.metrics_path,
@@ -38,6 +39,9 @@ def _cli_train(args: argparse.Namespace) -> None:
 	print(f"  - length metrics: {artifacts.length_metrics_path}")
 	if artifacts.fails_path:
 		print(f"  - fails: {artifacts.fails_path}")
+	print(f"  - calibration params: {artifacts.calibration_path}")
+	print(f"  - calibration metrics: {artifacts.calibration_metrics_path}")
+	print(f"  - fitted temperature: {artifacts.temperature:.4f}")
 	print(f"  - report dir: {artifacts.report_dir}")
      
 def _cli_evaluate(args: argparse.Namespace) -> None:
@@ -71,9 +75,9 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument("command", choices=["train", "evaluate", "predict"], help="Operation to perform")
 	parser.add_argument("--data-path", default=DEFAULT_DATA_PATH, type=Path, help="Ścieżka do zbioru danych")
 	parser.add_argument("--model-path", default=DEFAULT_MODEL_PATH, type=Path, help="Ścieżka do modelu")
-	parser.add_argument("--output-model-path", default=DEFAULT_MODEL_PATH, type=Path, help="Ścieżka zapisu nowego modelu (tylko train)")
-	parser.add_argument("--metrics-path", default=DEFAULT_METRICS_PATH, type=Path, help="Ścieżka do metryk")
-	parser.add_argument("--confusion-matrix-path", default=DEFAULT_CONFUSION_MATRIX_PATH, type=Path, help="Ścieżka do wykresu macierzy pomyłek")
+	parser.add_argument("--output-model-path", default=None, type=Path, help="Ścieżka zapisu nowego modelu (tylko train)")
+	parser.add_argument("--metrics-path", default=None, type=Path, help="Ścieżka do metryk")
+	parser.add_argument("--confusion-matrix-path", default=None, type=Path, help="Ścieżka do wykresu macierzy pomyłek")
 	parser.add_argument("--epochs", type=int, default=3, help="Liczba epok treningowych")
 	parser.add_argument("--batch-size", type=int, default=16, help="Rozmiar batcha")
 	parser.add_argument("--learning-rate", type=float, default=2e-5, help="Współczynnik uczenia")
@@ -81,11 +85,12 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument("--warmup-ratio", type=float, default=0.1, help="Odsetek kroków przeznaczony na warmup")
 	parser.add_argument("--max-length", type=int, default=512, help="Maksymalna długość sekwencji")
 	parser.add_argument("--test-size", type=float, default=0.2, help="Proporcja zbioru testowego podczas treningu")
+	parser.add_argument("--calibration-size", type=float, default=0.1, help="Proporcja zbioru treningowego wydzielona na kalibrację temperatury")
 	parser.add_argument("--random-state", type=int, default=42, help="Seed podziału danych")
 	parser.add_argument("--sample-size", type=float, default=None, help="Proporcja danych używanych do ewaluacji (tylko evaluate)")
 	parser.add_argument("--text", type=str, help="Tekst do predykcji (tylko predict)")
 	parser.add_argument("--run-name", type=str, default=None, help="Prefiks runu. Jeśli brak wygeneruje się dzisiejsza data.")
-	
+
 	return parser
 
 def dispatch_cli(args: argparse.Namespace) -> None:

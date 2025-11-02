@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import numpy as np, pandas as pd, torch
+import torch.nn.functional as F
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
@@ -11,7 +12,13 @@ from .data import EssayDataset
 from .model_utils import get_device, load_model_artifacts
 
 
-def evaluate_model(model: torch.nn.Module, data_loader: DataLoader, *, device: torch.device) -> Dict[str, object]:
+def evaluate_model(
+	model: torch.nn.Module,
+	data_loader: DataLoader,
+	*,
+	device: torch.device,
+	temperature: float | None = None
+) -> Dict[str, object]:
 	model.eval()
 	predictions: list[int] = []
 	targets: list[int] = []
@@ -19,6 +26,9 @@ def evaluate_model(model: torch.nn.Module, data_loader: DataLoader, *, device: t
 	prob_records: List[Dict[str, object]] = []
 	dataset = getattr(data_loader, "dataset", None)
 	dataset_frame = getattr(dataset, "frame", None)
+	resolved_temperature = float(temperature if temperature is not None else getattr(model, "_factify_temperature", 1.0))
+	if resolved_temperature <= 0:
+		resolved_temperature = 1.0
 
 	with torch.no_grad():
 		for batch in data_loader:
@@ -33,20 +43,33 @@ def evaluate_model(model: torch.nn.Module, data_loader: DataLoader, *, device: t
 				attention_mask=batch["attention_mask"],
 				labels=batch["labels"]
 			)
-			losses.append(outputs.loss.item())
-			logits = outputs.logits.detach().cpu()
-			batch_predictions = torch.argmax(logits, dim=1).tolist()
+			logits = outputs.logits.detach()
+			raw_probabilities = torch.softmax(logits, dim=1).detach().cpu()
+			calibrated_logits = (logits / resolved_temperature).detach()
+			loss = F.cross_entropy(calibrated_logits, batch["labels"])
+			losses.append(float(loss.item()))
+			batch_predictions = torch.argmax(calibrated_logits, dim=1).cpu().tolist()
 			predictions.extend(batch_predictions)
 			target_batch = batch["labels"].detach().cpu().tolist()
 			targets.extend(target_batch)
-			probabilities = torch.softmax(outputs.logits, dim=1).detach().cpu().tolist()
-			for sid, true_label, pred_label, probs in zip(sample_ids_list, target_batch, batch_predictions, probabilities):
+			probabilities = torch.softmax(calibrated_logits, dim=1).detach().cpu().tolist()
+			raw_probs_list = raw_probabilities.tolist()
+			for sid, true_label, pred_label, probs_raw, probs_cal in zip(
+				sample_ids_list,
+				target_batch,
+				batch_predictions,
+				raw_probs_list,
+				probabilities
+			):
 				record: Dict[str, object] = {
 					"sample_id": None if sid is None else int(sid),
 					"true_label": int(true_label),
 					"pred_label": int(pred_label),
-					"prob_generated": float(probs[1]),
-					"prob_human": float(probs[0])
+					"prob_generated_raw": float(probs_raw[1]),
+					"prob_human_raw": float(probs_raw[0]),
+					"prob_generated": float(probs_cal[1]),
+					"prob_human": float(probs_cal[0]),
+					"temperature": float(resolved_temperature)
 				}
 				if dataset_frame is not None and sid is not None:
 					text = dataset_frame.iloc[sid]["text"]
@@ -103,6 +126,10 @@ def predict_proba(text: str, model_path: Path | str = DEFAULT_MODEL_PATH) -> flo
 
 	with torch.no_grad():
 		outputs = model(**encoded)
-		probabilities = torch.softmax(outputs.logits, dim=1)
+		temperature = float(getattr(model, "_factify_temperature", 1.0))
+		if temperature <= 0:
+			temperature = 1.0
+		logits = outputs.logits / temperature
+		probabilities = torch.softmax(logits, dim=1)
 
 	return float(probabilities[0, 1].detach().cpu().item())

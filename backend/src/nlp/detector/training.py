@@ -14,6 +14,7 @@ from .data import create_dataloaders, prepare_splits
 from .evaluation import evaluate_model
 from .model_utils import get_device, load_model_artifacts
 from .artifacts import RunArtifactPaths, build_run_artifact_paths, generate_run_name
+from .calibration import fit_temperature_scaling
 from .analysis import (
 	compute_dataset_stats,
 	compute_length_bucket_metrics,
@@ -25,6 +26,7 @@ from .reporting import (
 	save_length_metrics,
 	save_metrics,
 	save_params,
+	save_calibration_metadata,
 )
 
 @dataclass
@@ -38,6 +40,9 @@ class TrainingArtifacts:
 	length_metrics_path: Path
 	report_dir: Path
 	fails_path: Optional[Path]
+	calibration_path: Path
+	calibration_metrics_path: Path
+	temperature: float
 
 def train_model(
 	data_path: Path | str = DEFAULT_DATA_PATH,
@@ -49,6 +54,7 @@ def train_model(
 	warmup_ratio: float = 0.1,
 	max_length: int = 128,
 	test_size: float = 0.2,
+	calibration_size: float = 0.1,
 	random_state: int = 42,
 	output_model_path: Path | str | None = None,
 	metrics_path: Path | str | None = None,
@@ -68,9 +74,15 @@ def train_model(
 	for parent in {model_output_path.parent, metrics_output_path.parent, confusion_output_path.parent}:
 		parent.mkdir(parents=True, exist_ok=True)
 
-	train_frame, test_frame = prepare_splits(data_path, test_size=test_size, random_state=random_state)
-	train_loader, test_loader = create_dataloaders(
+	train_frame, calibration_frame, test_frame = prepare_splits(
+		data_path,
+		test_size=test_size,
+		calibration_size=calibration_size,
+		random_state=random_state
+	)
+	train_loader, calibration_loader, test_loader = create_dataloaders(
 		train_frame,
+		calibration_frame,
 		test_frame,
 		tokenizer,
 		max_length=max_length,
@@ -111,13 +123,21 @@ def train_model(
 		avg_loss = float(np.mean(epoch_losses)) if epoch_losses else 0.0
 		print(f"Epoch {epoch + 1}/{epochs} — training loss: {avg_loss:.4f}")
 
-	metrics = evaluate_model(model, test_loader, device=device)
-	torch.save(model.state_dict(), model_output_path)
+	calibration_outcome = fit_temperature_scaling(model, calibration_loader, device=device)
+	temperature = calibration_outcome.temperature
+	setattr(model, "_factify_temperature", temperature)
+	metrics = evaluate_model(model, test_loader, device=device, temperature=temperature)
+	torch.save({
+		"model_state_dict": model.state_dict(),
+		"temperature": temperature
+	}, model_output_path)
 	save_metrics(metrics["report"], metrics["accuracy"], metrics_output_path)
 	plot_confusion_matrix(metrics["confusion_matrix"], ["human", "generated"], confusion_output_path)
 	save_dataset_stats(dataset_stats, run_paths.dataset_stats_path)
 	length_metrics = compute_length_bucket_metrics(metrics.get("records", []))
 	save_length_metrics(length_metrics, run_paths.length_metrics_path)
+	save_calibration_metadata({"temperature": temperature}, run_paths.calibration_path)
+	save_calibration_metadata(calibration_outcome.report, run_paths.calibration_metrics_path)
 	params_payload = {
 		"run_name": resolved_run_name,
 		"model_name": NLP_MODEL_NAME,
@@ -129,6 +149,7 @@ def train_model(
 			"weight_decay": weight_decay,
 			"warmup_ratio": warmup_ratio,
 			"max_length": max_length,
+			"calibration_size": calibration_size,
 		},
 		"data": {
 			"path": str(Path(data_path)),
@@ -154,5 +175,8 @@ def train_model(
 		dataset_stats_path=run_paths.dataset_stats_path,
 		length_metrics_path=run_paths.length_metrics_path,
 		report_dir=run_paths.report_dir,
-		fails_path=fails_path
+		fails_path=fails_path,
+		calibration_path=run_paths.calibration_path,
+		calibration_metrics_path=run_paths.calibration_metrics_path,
+		temperature=temperature
 	)

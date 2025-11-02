@@ -65,3 +65,10 @@ def save_length_metrics(metrics: Dict[str, object], output_path: Path) -> None:
 	output_path.parent.mkdir(parents=True, exist_ok=True)
 	with output_path.open("w", encoding="utf-8") as handle:
 		json.dump(metrics, handle, indent=2)
+
+def save_calibration_metadata(payload: Dict[str, object], output_path: Path) -> None:
+	if not payload:
+		return
+	output_path.parent.mkdir(parents=True, exist_ok=True)
+	with output_path.open("w", encoding="utf-8") as handle:
+		json.dump(payload, handle, indent=2)
