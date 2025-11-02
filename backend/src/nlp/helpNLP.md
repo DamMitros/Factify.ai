@@ -10,6 +10,7 @@ backend/src/nlp/
 ├── data/                  # Dane treningowe / walidacyjne (CSV)
 └── detector/
     ├── analysis.py        # Statystyki datasetu i bucketów długości
+    ├── calibration.py     # Kalibracja modelu poprzez temperature scaling
     ├── cli.py             # Implementacja komend CLI
     ├── config.py          # Konfiguracja treningu i ścieżki artefaktów
     ├── data.py            # Ładowanie i podział danych

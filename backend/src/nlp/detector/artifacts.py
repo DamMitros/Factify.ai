@@ -15,6 +15,8 @@ class RunArtifactPaths:
 	fails_path: Path
 	dataset_stats_path: Path
 	length_metrics_path: Path
+	calibration_path: Path
+	calibration_metrics_path: Path
 
 	def ensure_directories(self) -> None:
 		self.report_dir.mkdir(parents=True, exist_ok=True)
@@ -35,7 +37,9 @@ def build_run_artifact_paths(run_name: str, *, ensure_dirs: bool = True) -> RunA
 		params_path=report_dir / "params.json",
 		fails_path=report_dir / "fails.csv",
 		dataset_stats_path=report_dir / "dataset_stats.json",
-		length_metrics_path=report_dir / "length_bucket_metrics.json"
+		length_metrics_path=report_dir / "length_bucket_metrics.json",
+		calibration_path=report_dir / "calibration.json",
+		calibration_metrics_path=report_dir / "calibration_metrics.json"
 	)
 
 	if ensure_dirs:
