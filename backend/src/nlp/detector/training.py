@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
+from torch import nn
 
 import numpy as np, torch
 from transformers import AutoModelForSequenceClassification, get_linear_schedule_with_warmup
@@ -93,6 +94,9 @@ def train_model(
 	model = AutoModelForSequenceClassification.from_pretrained(NLP_MODEL_NAME, num_labels=NUM_LABELS)
 	model.to(device)
 
+	label_smoothing_factor=0.2
+	loss_fn = nn.CrossEntropyLoss(label_smoothing=label_smoothing_factor)
+
 	optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 	total_steps = len(train_loader) * epochs
 	warmup_steps = int(total_steps * warmup_ratio)
@@ -110,9 +114,11 @@ def train_model(
 			outputs = model(
 				input_ids=batch["input_ids"],
 				attention_mask=batch["attention_mask"],
-				labels=batch["labels"]
+				# labels=batch["labels"]
 			)
-			loss = outputs.loss
+			logits = outputs.logits
+			loss = loss_fn(logits, batch["labels"])
+
 			loss.backward()
 			torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 			optimizer.step()
