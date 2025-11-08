@@ -18,4 +18,8 @@ DEFAULT_MODEL_PATH = MODEL_DIR / "roberta_finetuned.pt"
 DEFAULT_METRICS_PATH = REPORT_DIR / "metrics.json"
 DEFAULT_CONFUSION_MATRIX_PATH = REPORT_DIR / "confusion_matrix.png"
 
+MC_DROPOUT_ENABLED = True
+MC_DROPOUT_PASSES = 16
+MC_DROPOUT_RANDOM_SEED = 42
+
 #Docelowo można by tutaj umieścić python-dotenv /tylko to chyba dopiero przy pełnej implementacji mikroserwisu

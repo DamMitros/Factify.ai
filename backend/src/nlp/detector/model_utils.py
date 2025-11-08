@@ -1,5 +1,6 @@
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Tuple
+from typing import Iterator, Tuple
 
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -8,6 +9,22 @@ from .config import DEFAULT_MODEL_PATH, NLP_MODEL_NAME, NUM_LABELS
 _tokenizer_cache: AutoTokenizer | None = None
 _model_cache: AutoModelForSequenceClassification | None = None
 _temperature_cache: float | None = None
+
+@contextmanager
+def dropout_train_mode(model: torch.nn.Module) -> Iterator[None]:
+	dropout_modules: list[torch.nn.Module] = []
+	original_states: list[bool] = []
+	for module in model.modules():
+		if isinstance(module, (torch.nn.Dropout, torch.nn.Dropout1d, torch.nn.Dropout2d, torch.nn.Dropout3d)):
+			dropout_modules.append(module)
+			original_states.append(module.training)
+	for module in dropout_modules:
+		module.train(True)
+	try:
+		yield
+	finally:
+		for module, state in zip(dropout_modules, original_states):
+			module.train(state)
 
 def get_device() -> torch.device:
 	if torch.cuda.is_available():
