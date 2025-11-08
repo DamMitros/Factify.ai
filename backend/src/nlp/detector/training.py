@@ -9,7 +9,10 @@ from transformers import AutoModelForSequenceClassification, get_linear_schedule
 from .config import (
 	DEFAULT_DATA_PATH,
 	NLP_MODEL_NAME,
-	NUM_LABELS
+	NUM_LABELS,
+	MC_DROPOUT_ENABLED,
+	MC_DROPOUT_PASSES,
+	MC_DROPOUT_RANDOM_SEED,
 )
 from .data import create_dataloaders, prepare_splits
 from .evaluation import evaluate_model
@@ -94,7 +97,7 @@ def train_model(
 	model = AutoModelForSequenceClassification.from_pretrained(NLP_MODEL_NAME, num_labels=NUM_LABELS)
 	model.to(device)
 
-	label_smoothing_factor=0.2
+	label_smoothing_factor=0.1
 	loss_fn = nn.CrossEntropyLoss(label_smoothing=label_smoothing_factor)
 
 	optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
@@ -132,7 +135,11 @@ def train_model(
 	calibration_outcome = fit_temperature_scaling(model, calibration_loader, device=device)
 	temperature = calibration_outcome.temperature
 	setattr(model, "_factify_temperature", temperature)
-	metrics = evaluate_model(model, test_loader, device=device, temperature=temperature)
+	metrics = evaluate_model(model, test_loader, device=device, temperature=temperature,
+		mc_dropout_enabled=MC_DROPOUT_ENABLED,
+		mc_dropout_passes=MC_DROPOUT_PASSES,
+		mc_dropout_seed=MC_DROPOUT_RANDOM_SEED,
+	)
 	torch.save({
 		"model_state_dict": model.state_dict(),
 		"temperature": temperature
@@ -156,11 +163,17 @@ def train_model(
 			"warmup_ratio": warmup_ratio,
 			"max_length": max_length,
 			"calibration_size": calibration_size,
+			"mc_dropout_enabled": MC_DROPOUT_ENABLED,
+			"mc_dropout_passes": MC_DROPOUT_PASSES,
 		},
 		"data": {
 			"path": str(Path(data_path)),
 			"test_size": test_size,
 			"random_state": random_state,
+		},
+		"seeds": {
+			"training": random_state,
+			"mc_dropout": MC_DROPOUT_RANDOM_SEED,
 		},
 	}
 	save_params(params_payload, run_paths.params_path)
