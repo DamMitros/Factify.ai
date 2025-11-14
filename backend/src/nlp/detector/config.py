@@ -22,4 +22,10 @@ MC_DROPOUT_ENABLED = True
 MC_DROPOUT_PASSES = 16
 MC_DROPOUT_RANDOM_SEED = 42
 
+SEGMENT_WORD_TARGET = 50
+SEGMENT_STRIDE_WORDS = 25
+SEGMENT_MIN_WORDS = 10
+SEGMENT_AI_THRESHOLD = 0.65
+SEGMENT_HUMAN_THRESHOLD = 0.35
+
 #Docelowo można by tutaj umieścić python-dotenv /tylko to chyba dopiero przy pełnej implementacji mikroserwisu

@@ -1,13 +1,18 @@
 import argparse, json, time
 from pathlib import Path
 
-from .evaluation import evaluate_saved_model, predict_proba
+from .evaluation import evaluate_saved_model, predict_proba, predict_segmented_text
 from .training import train_model
 from .config import (
 	DEFAULT_CONFUSION_MATRIX_PATH,
 	DEFAULT_DATA_PATH,
 	DEFAULT_METRICS_PATH,
-	DEFAULT_MODEL_PATH
+	DEFAULT_MODEL_PATH,
+	SEGMENT_AI_THRESHOLD,
+	SEGMENT_HUMAN_THRESHOLD,
+	SEGMENT_MIN_WORDS,
+	SEGMENT_STRIDE_WORDS,
+	SEGMENT_WORD_TARGET,
 )
 
 def _cli_train(args: argparse.Namespace) -> None:
@@ -63,12 +68,42 @@ def _cli_evaluate(args: argparse.Namespace) -> None:
 	}, indent=2))
 
 def _cli_predict(args: argparse.Namespace) -> None:
-	probability = predict_proba(args.text, model_path=args.model_path)
-	print(json.dumps({
+	if args.detailed:
+		stride_value = args.segment_stride_words
+		if stride_value is not None:
+			stride_value = int(stride_value)
+		result = predict_segmented_text(
+			args.text,
+			model_path=args.model_path,
+			words_per_chunk=args.segment_words_per_chunk,
+			stride_words=stride_value,
+			min_words=args.segment_min_words,
+			max_length=args.segment_max_length,
+			ai_threshold=args.segment_ai_threshold,
+			human_threshold=args.segment_human_threshold,
+		)
+		print(json.dumps(result, indent=2, ensure_ascii=False))
+		return
+
+	scores = predict_proba(args.text, model_path=args.model_path, return_details=True)
+	response = {
 		"text": args.text,
-		"ai_probability": probability,
-		"human_probability": 1 - probability,
-	}, indent=2))
+		"ai_probability": scores["prob_generated"],
+		"human_probability": scores["prob_human"],
+		"details": {
+			"prob_generated": scores["prob_generated"],
+			"prob_generated_std": scores["prob_generated_std"],
+			"prob_human": scores["prob_human"],
+			"prob_human_std": scores["prob_human_std"],
+			"prob_generated_raw": scores["prob_generated_raw"],
+			"prob_human_raw": scores["prob_human_raw"],
+			"prob_entropy": scores["prob_entropy"],
+			"prob_variation_ratio": scores["prob_variation_ratio"],
+			"mc_dropout_passes": scores["mc_dropout_passes"],
+			"temperature": scores["temperature"],
+		},
+	}
+	print(json.dumps(response, indent=2, ensure_ascii=False))
 
 def build_parser() -> argparse.ArgumentParser:
 	parser = argparse.ArgumentParser(description="NLP pipeline utilities")
@@ -90,6 +125,13 @@ def build_parser() -> argparse.ArgumentParser:
 	parser.add_argument("--sample-size", type=float, default=None, help="Proporcja danych używanych do ewaluacji (tylko evaluate)")
 	parser.add_argument("--text", type=str, help="Tekst do predykcji (tylko predict)")
 	parser.add_argument("--run-name", type=str, default=None, help="Prefiks runu. Jeśli brak wygeneruje się dzisiejsza data.")
+	parser.add_argument("--detailed", action="store_true", help="Zwróć szczegółowe segmenty podczas predykcji")
+	parser.add_argument("--segment-words-per-chunk", type=int, default=SEGMENT_WORD_TARGET, help="Liczba słów w segmencie (predict --detailed)")
+	parser.add_argument("--segment-stride-words", type=int, default=SEGMENT_STRIDE_WORDS, help="Krok przesuwny między segmentami (predict --detailed)")
+	parser.add_argument("--segment-min-words", type=int, default=SEGMENT_MIN_WORDS, help="Minimalna liczba słów w segmencie (predict --detailed)")
+	parser.add_argument("--segment-max-length", type=int, default=128, help="Maksymalna długość tokenów na segment (predict --detailed)")
+	parser.add_argument("--segment-ai-threshold", type=float, default=SEGMENT_AI_THRESHOLD, help="Próg uznania segmentu za AI (predict --detailed)")
+	parser.add_argument("--segment-human-threshold", type=float, default=SEGMENT_HUMAN_THRESHOLD, help="Próg uznania segmentu za human (predict --detailed)")
 
 	return parser
 
