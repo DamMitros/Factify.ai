@@ -6,10 +6,15 @@ interface RequestOptions extends RequestInit {
   requireAuth?: boolean;
 }
 
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+}
+
 async function apiRequest<T>(
   endpoint: string,
   options: RequestOptions = {}
-): Promise<T> {
+): Promise<ApiResponse<T>> {
   const { requireAuth = true, headers = {}, ...fetchOptions } = options;
 
   const requestHeaders: HeadersInit = {
@@ -43,7 +48,8 @@ async function apiRequest<T>(
         if (!retryResponse.ok) {
           throw new Error(`HTTP ${retryResponse.status}: ${retryResponse.statusText}`);
         }
-        return retryResponse.json();
+        const data = await retryResponse.json();
+        return { data, status: retryResponse.status };
       }
       throw new Error('SESSION_EXPIRED');
     }
@@ -52,7 +58,8 @@ async function apiRequest<T>(
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    return { data, status: response.status };
   } catch (error) {
     console.error(`API request failed: ${endpoint}`, error);
     throw error;

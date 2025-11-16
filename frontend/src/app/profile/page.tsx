@@ -29,7 +29,7 @@ export default function ProfilePage() {
     }
 
     api.get<UserProfile>('/user/profile')
-      .then(setProfile)
+      .then(({ data }) => setProfile(data)) 
       .catch((err) => {
         if (err.message === 'NOT_AUTHENTICATED' || err.message === 'SESSION_EXPIRED') {
           keycloak?.login({ redirectUri: window.location.href });
