@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from werkzeug.exceptions import BadRequest
 
-from nlp.pipeline import (predict_proba)
+from nlp.detector.evaluation import predict_proba
 
 nlp_bp = Blueprint("nlp", __name__)
 
