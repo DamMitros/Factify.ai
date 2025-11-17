@@ -7,6 +7,8 @@ services:
     restart: on-failure
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/modules
     ports:
       - "8080:8080"
     volumes:
@@ -37,6 +39,8 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+    env_file:
+      - .env
     ports:
       - "3000:3000"
     networks:

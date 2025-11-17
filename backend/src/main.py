@@ -1,6 +1,6 @@
 from flask import Flask, Blueprint
 from flask_cors import CORS
-from routes import example_bp, nlp_bp
+from routes import example_bp, nlp_bp, user_bp
 from common.python import db
 
 import config
@@ -9,9 +9,7 @@ app = Flask(__name__)
 
 db.init_app(app)
 
-app = Flask(__name__)
-
-CORS(app, resources={r"/*": {"origins": "http://frontend:3000"}})
+CORS(app, resources={r"/*": {"origins": ["http://frontend:3000", "http://localhost:3000"]}})
 
 
 def register_route(path: str, blueprint: Blueprint):
@@ -20,6 +18,7 @@ def register_route(path: str, blueprint: Blueprint):
 
 register_route("/example", example_bp)
 register_route("/nlp", nlp_bp)
+register_route("/user", user_bp)
 
 
 @app.route("/")
