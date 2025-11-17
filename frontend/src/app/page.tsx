@@ -8,7 +8,8 @@ import RegisterButton from "./components/RegisterButton";
 export default function LandingPage() {
   return (
     <>
-
+    <LoginButton />
+    <RegisterButton />
     <div className="buttons" >
 
       <InteractiveBubble />
@@ -16,12 +17,7 @@ export default function LandingPage() {
 
     </div>
     <div className="mainBackground">
-     <LoginButton />
-     <RegisterButton />
      <Bubbles />
-     <InteractiveBubble />
-     <h1>Welcome to Factify.ai</h1>
-     <ButtonBubbles />
     </div>
     
       <h1 className="main-page-title">Welcome to Factify.ai</h1>
