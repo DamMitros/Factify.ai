@@ -22,7 +22,7 @@ def predict_endpoint():
     ai_prob_rounded = round(ai_prob * 100)
 
     database = db.get_database("factify")
-    collection = database["predictions"]
+    collection = database["analisys"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_rounded,
@@ -44,7 +44,7 @@ def get_predictions_by_user(user_id: str):
 
     try:
         database = db.get_database("factify")
-        collection = database["predictions"]
+        collection = database["analisys"]
 
         cursor = collection.find({"user_id": user_id}).sort("_id", -1)
 
