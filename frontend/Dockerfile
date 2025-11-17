@@ -1,14 +1,14 @@
 FROM node:20-alpine AS base
 WORKDIR /app
 
-COPY src/package*.json .
+COPY frontend/src/package*.json .
 RUN npm ci
 
 
 FROM node:20-alpine AS final
 WORKDIR /app
 
-COPY src/ .
+COPY frontend/src/ .
 
 ENV NODE_ENV=development
 
