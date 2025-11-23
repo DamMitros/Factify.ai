@@ -1,17 +1,11 @@
-import math
-
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.exceptions import BadRequest, InternalServerError
 
 from nlp import predict_proba, predict_segmented_text
-from nlp.detector.evaluation import predict_proba
 from nlp.detector.config import SEGMENT_MIN_WORDS, SEGMENT_STRIDE_WORDS, SEGMENT_WORD_TARGET
 from common.python import db
-import config
-from datetime import datetime
 
 nlp_bp = Blueprint("nlp", __name__)
-
 
 @nlp_bp.route("/predict", methods=["POST"])
 def predict_endpoint():
@@ -107,7 +101,7 @@ def predict_endpoint():
   collection = database["analisys"]
   doc = {
     "text": text,
-    "ai_probability": ai_prob_rounded,
+    "ai_probability": ai_prob_pct,
     "user_id": "placeholder"
   }
   collection.insert_one(doc)

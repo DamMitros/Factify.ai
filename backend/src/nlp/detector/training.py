@@ -9,20 +9,13 @@ from transformers import AutoModelForSequenceClassification, get_linear_schedule
 from .config import (
 	DEFAULT_DATA_PATH,
 	NLP_MODEL_NAME,
-	NUM_LABELS,
-	MC_DROPOUT_ENABLED,
-	MC_DROPOUT_PASSES,
-	MC_DROPOUT_RANDOM_SEED,
 )
 from .data import create_dataloaders, prepare_splits
 from .evaluation import evaluate_model
 from .model_utils import get_device, load_model_artifacts
-from .artifacts import RunArtifactPaths, build_run_artifact_paths, generate_run_name
+from .artifacts import build_run_artifact_paths, generate_run_name
 from .calibration import fit_temperature_scaling
-from .analysis import (
-	compute_dataset_stats,
-	compute_length_bucket_metrics,
-)
+from .analysis import compute_dataset_stats,compute_length_bucket_metrics
 from .reporting import (
 	plot_confusion_matrix,
 	save_dataset_stats,
@@ -94,7 +87,7 @@ def train_model(
 	)
 	dataset_stats = compute_dataset_stats(train_frame, test_frame)
 
-	model = AutoModelForSequenceClassification.from_pretrained(NLP_MODEL_NAME, num_labels=NUM_LABELS)
+	model = AutoModelForSequenceClassification.from_pretrained(NLP_MODEL_NAME, num_labels=2)
 	model.to(device)
 
 	label_smoothing_factor=0.1
@@ -117,7 +110,6 @@ def train_model(
 			outputs = model(
 				input_ids=batch["input_ids"],
 				attention_mask=batch["attention_mask"],
-				# labels=batch["labels"]
 			)
 			logits = outputs.logits
 			loss = loss_fn(logits, batch["labels"])
@@ -135,11 +127,7 @@ def train_model(
 	calibration_outcome = fit_temperature_scaling(model, calibration_loader, device=device)
 	temperature = calibration_outcome.temperature
 	setattr(model, "_factify_temperature", temperature)
-	metrics = evaluate_model(model, test_loader, device=device, temperature=temperature,
-		mc_dropout_enabled=MC_DROPOUT_ENABLED,
-		mc_dropout_passes=MC_DROPOUT_PASSES,
-		mc_dropout_seed=MC_DROPOUT_RANDOM_SEED,
-	)
+	metrics = evaluate_model(model, test_loader, device=device, temperature=temperature)
 	torch.save({
 		"model_state_dict": model.state_dict(),
 		"temperature": temperature
@@ -154,7 +142,7 @@ def train_model(
 	params_payload = {
 		"run_name": resolved_run_name,
 		"model_name": NLP_MODEL_NAME,
-		"num_labels": NUM_LABELS,
+		"num_labels": 2,
 		"hyperparameters": {
 			"epochs": epochs,
 			"batch_size": batch_size,
@@ -163,8 +151,8 @@ def train_model(
 			"warmup_ratio": warmup_ratio,
 			"max_length": max_length,
 			"calibration_size": calibration_size,
-			"mc_dropout_enabled": MC_DROPOUT_ENABLED,
-			"mc_dropout_passes": MC_DROPOUT_PASSES,
+			"mc_dropout_enabled": True,
+			"mc_dropout_passes": 16,
 		},
 		"data": {
 			"path": str(Path(data_path)),
@@ -173,7 +161,7 @@ def train_model(
 		},
 		"seeds": {
 			"training": random_state,
-			"mc_dropout": MC_DROPOUT_RANDOM_SEED,
+			"mc_dropout": 42,
 		},
 	}
 	save_params(params_payload, run_paths.params_path)
