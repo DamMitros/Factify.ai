@@ -1,20 +1,18 @@
+import json
 from flask import Blueprint, jsonify, request, current_app
 from werkzeug.exceptions import BadRequest, InternalServerError
 
 from nlp import predict_proba, predict_segmented_text
 from nlp.detector.config import SEGMENT_MIN_WORDS, SEGMENT_STRIDE_WORDS, SEGMENT_WORD_TARGET
 from common.python import db
+from common.python.text_extractor import extract_text
 
 nlp_bp = Blueprint("nlp", __name__)
 
-@nlp_bp.route("/predict", methods=["POST"])
-def predict_endpoint():
-  payload = request.get_json(silent=True) or {}
-  text = str(payload.get("text", "")).strip()
+def helper_to_predict(text, detailed_raw, segment_params_raw):
   if not text:
-    raise BadRequest("Brak tekstu do analizy.")
-
-  detailed_raw = payload.get("detailed")
+    raise BadRequest("No text provided for analysis.")
+   
   wants_segments = True
   if detailed_raw is not None:
     if isinstance(detailed_raw, str):
@@ -22,8 +20,14 @@ def predict_endpoint():
     else:
       wants_segments = bool(detailed_raw)
 
+  segment_params = segment_params_raw
+  if isinstance(segment_params, str):
+    try:
+      segment_params = json.loads(segment_params)
+    except:
+      segment_params = {}
+  segment_params = segment_params or {}
   if wants_segments:
-    segment_params = payload.get("segment_params", {}) or {}
     words_per_chunk = int(segment_params.get("words_per_chunk", SEGMENT_WORD_TARGET))
     stride_words = segment_params.get("stride_words", SEGMENT_STRIDE_WORDS)
     if stride_words is not None:
@@ -97,17 +101,73 @@ def predict_endpoint():
       response["uncertainty_entropy"] = details["prob_entropy"]
       response["uncertainty_variation_ratio"] = details["prob_variation_ratio"]
   
-  database = db.get_database("factify")
-  collection = database["analisys"]
-  doc = {
-    "text": text,
-    "ai_probability": ai_prob_pct,
-    "user_id": "placeholder"
-  }
-  collection.insert_one(doc)
+  return response, ai_prob_pct
 
+def helper_to_save_into_db(text, ai_prob_pct, user_id):
+  try:
+    database = db.get_database("factify")
+    collection = database["analisys"]
+    doc = {
+        "text": text,
+        "ai_probability": ai_prob_pct,
+        "user_id": user_id
+    }
+    collection.insert_one(doc)
+  except Exception as e:
+    current_app.logger.exception(f"MongoDB insert failed: {e}")
+
+@nlp_bp.route("/predict", methods=["POST"])
+def predict_endpoint():
+  payload = request.get_json(silent=True) or {}
+  text = str(payload.get("text", "")).strip()
+
+  response, ai_prob_pct = helper_to_predict(
+    text,
+    detailed_raw=payload.get("detailed"),
+    segment_params_raw=payload.get("segment_params"),
+  )
+
+  helper_to_save_into_db(
+    text,
+    ai_prob_pct,
+    user_id=str(payload.get("user_id", "")).strip() or None,
+  )
+  
   return jsonify(response)
 
+@nlp_bp.route("/predict_file", methods=["POST"])
+def predict_file_endpoint():
+  print("Przyjałem do odbioru")
+  if "file" not in request.files:
+    raise BadRequest("No file part in the request.")
+  
+  file = request.files["file"]
+  if file.filename == "":
+    raise BadRequest("No selected file.")
+  print("zaczałem extract")
+  try:
+    text = extract_text(file, filename=file.filename)
+    print("Skonczylem extract")
+  except Exception as e:
+    current_app.logger.exception(f"Text extraction failed: {e}")
+    raise InternalServerError("Failed to extract text from the uploaded file.")
+
+  print(text)
+  payload = request.form or {}
+  response, ai_prob_pct = helper_to_predict(
+    text,
+    detailed_raw=payload.get("detailed"),
+    segment_params_raw=payload.get("segment_params"),
+  )
+  print("Skonczylem predict")
+  print("Zapisuje do bazy")
+  helper_to_save_into_db(
+    text,
+    ai_prob_pct,
+    user_id=str(payload.get("user_id", "")).strip() or None,
+  )
+  print("Zapisalem do bazy")
+  return jsonify(response)
 
 @nlp_bp.route("/predictions/<user_id>", methods=["GET"])
 def get_predictions_by_user(user_id: str):
