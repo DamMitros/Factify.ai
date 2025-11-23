@@ -1,12 +1,11 @@
 import argparse, json, time
 from pathlib import Path
 
-from .evaluation import evaluate_saved_model, predict_proba, predict_segmented_text
+from .evaluation import evaluate_saved_model
+from .inference import predict_proba, predict_segmented_text
 from .training import train_model
 from .config import (
-	DEFAULT_CONFUSION_MATRIX_PATH,
 	DEFAULT_DATA_PATH,
-	DEFAULT_METRICS_PATH,
 	DEFAULT_MODEL_PATH,
 	SEGMENT_AI_THRESHOLD,
 	SEGMENT_HUMAN_THRESHOLD,

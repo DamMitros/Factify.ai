@@ -4,7 +4,7 @@ from typing import Iterator, Tuple
 
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-from .config import DEFAULT_MODEL_PATH, NLP_MODEL_NAME, NUM_LABELS
+from .config import DEFAULT_MODEL_PATH, NLP_MODEL_NAME
 
 _tokenizer_cache: AutoTokenizer | None = None
 _model_cache: AutoModelForSequenceClassification | None = None
@@ -52,9 +52,7 @@ def load_model_artifacts(
 		_tokenizer_cache = AutoTokenizer.from_pretrained(NLP_MODEL_NAME)
 
 	if _model_cache is None:
-		model = AutoModelForSequenceClassification.from_pretrained(
-			NLP_MODEL_NAME, num_labels=NUM_LABELS
-		)
+		model = AutoModelForSequenceClassification.from_pretrained(NLP_MODEL_NAME, num_labels=2)
 		temperature = 1.0
 		if resolved_model_path.exists():
 			checkpoint = torch.load(resolved_model_path, map_location=device)
@@ -66,6 +64,14 @@ def load_model_artifacts(
 			model.load_state_dict(state_dict)
 			temperature = max(float(temperature), 1e-3)
 		_model_cache = model.to(device)
+
+		if device.type=='cpu':
+			_model_cache = torch.quantization.quantize_dynamic(
+				_model_cache, 
+				{torch.nn.Linear}, 
+				dtype=torch.qint8
+			)
+
 		_temperature_cache = temperature
 		setattr(_model_cache, "_factify_temperature", temperature)
 		_model_cache.eval()
