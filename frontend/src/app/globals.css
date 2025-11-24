@@ -8,7 +8,7 @@
   --b2: rgba(235, 46, 207, 0.738);
   --b3: rgba(74, 74, 239, 0.705);
   --b4: rgba(92, 236, 212, 0.588);
-  --b5: rgba(226, 193, 28, 0.69);
+  --b5: rgba(74, 131, 84, 0.69);
   --b6: rgba(11, 28, 182, 0.7);
 
   --analyzer-surface: rgba(15, 23, 42, 0.55);
@@ -34,6 +34,8 @@
   --analyzer-option-text: #e2e8f0;
 
 }
+
+/* TO DO: BUBBLES NA VW JEDNOSTKI ABY NIE ZOOMOWALY SIE */
 
 @theme inline {
   --color-background: var(--background);
@@ -83,6 +85,82 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   
 }
+.GlobalNav {
+  z-index: 2000;
+  position: fixed;
+  display: flex;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  /* background: rgba(0, 0, 0, 0.3); */
+  /* z-index: 0; */
+  /* box-shadow: 0px 0 4px #fff; */
+  justify-content: right;
+  align-items: center;
+  padding: 15px;
+
+}
+.UserIcon {
+  color: var(--foreground);
+  height: 100%;
+  
+
+}
+
+.UserMenu {
+  position: relative;
+}
+
+.UserIconContainer{
+  height: 30px;
+  width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.2s ease;
+}
+
+.UserIcon:hover {
+  color: rgb(212, 204, 204);
+}
+
+.UserDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  z-index: 3000;
+}
+
+.UserDropdownItem {
+  display: block;
+  padding: 12px 16px;
+  color: var(--foreground);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.UserDropdownItem:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.LandingPageContainer{
+  height: 100vh;
+  width: 100vw;
+  position: relative;
+  overflow: hidden;
+}
 
 .mainBackground {
   /* background:var(--gradient-bg) ; */
@@ -91,6 +169,7 @@ body {
   filter: url(#goosoft);
     will-change: filter;
     overflow: hidden;
+  pointer-events: none;
 
   
 }
@@ -108,6 +187,7 @@ body {
   font-size: 20px;
 }
 .buttons{
+  pointer-events: none;
   position: fixed;
   inset: 0;
   display: flex;
@@ -122,20 +202,20 @@ body {
 
 .bubbles{
   pointer-events: none;
-
-  position: relative;
-  height: 100%;
-  width: 100%;
-  margin: 0 auto;
+  position: fixed; 
+  height: 100vh; 
+  width: 100vw; 
+  top: 0;
+  left: 0;
+  margin: 0;
   overflow: hidden; 
   will-change: filter;
 }
 
 .bubble{
   pointer-events: none;
-
   border-radius: 50%;
-  position: absolute;
+  position: fixed;
   opacity: 0.8; 
   left: 50%;
   top: 50%;
@@ -145,61 +225,68 @@ body {
 
 
 .bubble1{
-  background: radial-gradient(circle, var(--b1) , transparent 200px);
-  height: 700px;
-  width: 700px;
-  top:40%;
-  left:55%;
-  transform-origin: calc(50% - 180px) calc(50% - 80px);
+  background: radial-gradient(circle, var(--b1) , transparent 10vw);
+  height: 100vw;
+  width: 100vw;
+  /* background: red; */
+  top:50vw;
+  left:50vw;
+  transform-origin: 50vw 50vh;
   animation: moveInCircle 60s linear infinite;
 }
 .bubble2{
-  background: radial-gradient(circle, var(--b2) , transparent 390px);
-  height: 800px;
-  width: 800px;
-  top: 30%;
-  left:30%;
-  transform-origin: calc(50% + 220px) calc(50% + 40px);
+  background: radial-gradient(circle, var(--b2) , transparent 30vw);
+  height: 90vw;
+
+  width: 90vw;
+  top: 40vw;
+  left:30vw;
+  transform-origin: 50vw 50vh;
   animation: moveInCircle 60s linear reverse infinite;
 }
 .bubble3{
+
   background: radial-gradient(circle, var(--b3), transparent 250px);
-  height: 550px;
-  width: 550px;
-  top:30%;
-  left:30%;
-  transform-origin: calc(50% - 120px) calc(50% + 60px);
+  height: 60vw;
+
+  width: 60vw;
+  top:35vw;
+  left:35vw;
+  transform-origin: 50vw 40vh;
   animation: moveInCircle 60s ease-in-out infinite;
 }
 
 .bubble4{
-  background: radial-gradient(circle, var(--b4), transparent 430px);
-  height: 1000px;
-  width: 1000px;
-  top:50%;
-  left:65%;
-  transform-origin: calc(50% - 300px) calc(50% - 200px);
+  background: radial-gradient(circle, var(--b4), transparent 20vw);
+  height: 110vw;
+  width: 110vw;
+
+  top:60vw;
+  left:65vw;
+  transform-origin: 50vw 20vh;
   animation: moveInCircle 60s linear infinite;
   overflow: hidden;
 }
 .bubble5{
-  background: radial-gradient(circle, var(--b5) , transparent 300px);
-  height: 650px;
-  width: 650px;
-  top:45%;
-  left:35%;
-  transform-origin: calc(50% + 140px) calc(50% - 100px);
+  background: radial-gradient(circle, var(--b5) , transparent 10vw);
+  height: 75vw;
+  width: 75vw;
+
+  top:55vw;
+  left:35vw;
+  transform-origin: 50vw 50vh;
   animation: moveInCircle 65s ease-in-out reverse infinite;
 }
 
 .bubble6{
-  background: radial-gradient(circle, var(--b6) , transparent 500px);
-  height: 1150px;
-  width: 1150px;
-  top:60%;
-  left:35%;
+  background: radial-gradient(circle, var(--b6) , transparent 30vw);
+  height: 135vw;
+  width: 135vw;
+
+  top:90vw;
+  left:45vw;
   z-index: 1;
-  transform-origin: calc(50% + 360px) calc(50% + 120px);
+  transform-origin: 50vw 50vh;
   animation: moveInCircle 65s linear infinite;
 }
 
@@ -260,6 +347,7 @@ h1,h3{
   display: flex;
   justify-content: space-evenly;
   filter: url(#goob);
+  /* pointer-events:none; */
 }
 
 @keyframes movingShadow {
@@ -273,42 +361,6 @@ h1,h3{
   100%{
     box-shadow: 0 0 5px 5px #fff;;
   }
-  100% {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
-}
-
-
-.interactiveBubbleContainer {
-  position: fixed;   
-  inset: 0;
-  pointer-events: none;
-  z-index: 9998;    
-  background: transparent; 
-}
-
-.interactiveBubble {
-  position: fixed;             
-
-  transform: translate(-50%, -50%); 
-  width: 220px;                
-  height: 220px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle at 30% 30%, rgba(140,100,255,0.85) 0%, rgba(140,100,255,0) 60%);
-  mix-blend-mode: screen;
-  filter: blur(24px);
-  will-change: left, top, transform;
-  z-index: 9999;               
-}
-
-h1,h3{
-  position:fixed;
-  top:20%;
- 
-  width: 100%;
-  text-align: center;
-  font-size: 50px;
 }
 
 .buttonBubble{
@@ -323,6 +375,7 @@ h1,h3{
   animation: movingShadow 5s ease-in-out infinite,
              blobMorph 6s ease-in-out infinite;
   border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%;
+  pointer-events: auto;
 
   
 }
