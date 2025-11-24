@@ -1,7 +1,7 @@
 from keycloak import KeycloakOpenID
 import os
 from jose import jwt, JWTError, ExpiredSignatureError
-from flask import jsonify,request
+from flask import jsonify,request, g
 import functools
 from typing import Optional
 
@@ -34,48 +34,66 @@ def _get_public_key() -> str:
     return _PUBLIC_KEY
 
 
-def verify_token():
-    auth_header = request.headers.get("Authorization")
-    if not auth_header or not auth_header.startswith("Bearer "):
-        return None, jsonify({"message": "Token is missing"}), 401
-
-    token = auth_header.split(" ")[1]
-
+def _decode_token(token: str):
     try:
         public_key = _get_public_key()
         decoded = jwt.decode(
             token,
             public_key,
             algorithms=['RS256'],
-            audience=KEYCLOAK_CLIENT_ID, 
+            audience=KEYCLOAK_CLIENT_ID,
         )
-
-        request.user = decoded
         return decoded, None, None
-
     except ExpiredSignatureError:
         return None, jsonify({"message": "Session expired"}), 401
     except JWTError as e:
         return None, jsonify({"message": "Token is invalid", "error": str(e)}), 401
 
 
+def require_auth(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return jsonify({"message": "Token is missing"}), 401
 
-def role_required(role_name):
+        token = auth_header.split(" ")[1]
+        decoded, err_response, status = _decode_token(token)
+        
+        if err_response:
+            return err_response, status
+
+        g.user = decoded
+        return f(*args, **kwargs)
+    
+    return wrapper
+
+
+def role_required(role_name: str):
     def decorator(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            decoded_token, err_response, status = verify_token()
+            auth_header = request.headers.get("Authorization")
+            if not auth_header or not auth_header.startswith("Bearer "):
+                return jsonify({"message": "Token is missing"}), 401
+
+            token = auth_header.split(" ")[1]
+            decoded, err_response, status = _decode_token(token)
+            
             if err_response:
                 return err_response, status
 
-            roles = decoded_token.get("realm_access", {}).get("roles", [])
+            roles = decoded.get("realm_access", {}).get("roles", [])
             if role_name not in roles:
                 return jsonify({"message": f"Role '{role_name}' required"}), 403
 
-            request.user = decoded_token
+            g.user = decoded
             return f(*args, **kwargs)
+        
         return wrapper
     return decorator
+
+
 
 
 
