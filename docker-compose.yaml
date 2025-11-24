@@ -39,8 +39,12 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      target: dev
     env_file:
       - .env
+    volumes:
+      - ./frontend/src:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     networks:
