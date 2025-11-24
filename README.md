@@ -127,7 +127,7 @@ Wszystkie zmiany powinny być rozpoczynane na nowych gałęziach:
 Po zakończeniu pracy na swojej gałęzi należy:
 - Wykonać ostatniego commit'a i push'a (`git commit` i `git push`)
 - Zebrać zmiany z głównej gałęzi (`git fetch origin master`)
-- Wykonać merge z głównej gałęzi do swojej (`git merge origin/main`)
+- Wykonać merge z głównej gałęzi do swojej (`git merge origin/master`)
   - Jeżeli pojawią się konflikty, to znaczy, że w trakcie naszej pracy, ktoś inny wprowadził zmiany w tych samych miejscach co my. **Należy je naprawić, usuwając nieaktualne wersje kodu i zostawiając tylko te ostateczne.**
 - _(Jeżeli trzeba było rozwiązać konflikty):_ Wykonać push'a, który wrzuci poprawki do repozytorium. (`git push`)
 
