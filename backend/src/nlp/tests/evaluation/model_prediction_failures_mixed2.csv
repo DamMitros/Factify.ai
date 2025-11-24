@@ -1,0 +1,21 @@
+text_fragment,description,expected_class,expected_label,predicted_class,predicted_label,confidence_human_percent,confidence_ai_percent
+"Summer break is a time every student and teacher look forward to and count the days until it arrives. However, one of the things that many students dread is summer projects. Summer projects could be a...",Wiersz 53738 (Human),0,Human,1,AI,6.63%,93.37%
+"The Face
+
+Some people don't believe the Face on Mars is a natural landform. They believe that aliens created it. Some people also believe that it was not actually found on earth. Jim Gavin, chief scie...",Wiersz 354787 (Human),0,Human,1,AI,4.73%,95.27%
+"Would you want to be burned at 800 degrees Fahrenheit? No, that just sound to painful you might say. Scientists at NASA speculate that Venus's surface on the planet can average those temperatures. In ...",Wiersz 434848 (Human),0,Human,1,AI,4.57%,95.43%
+Most schools require students to complete a variety of projects during their summer break like reading books or completing a math packet. These projects help students continue their learning away from...,Wiersz 52955 (Human),0,Human,1,AI,4.49%,95.51%
+"Online classes are a pretty new thing, ANH I think they're pretty cool. I mean, you can learn from home ANH not have to heal with all that awkwardness of being in a classroom with other people. But, t...",Wiersz 406849 (AI),1,AI,0,Human,94.59%,5.41%
+"In this essay we will discuss the issue with meeting, and driving. As being a part of the generation that stays with phones on our minds, it's very simple to express, and explain what is really going ...",Wiersz 120089 (Human),0,Human,1,AI,8.03%,91.97%
+"Dear Principal,
+
+I feel we should have the first policy. I think it is a good compromise.
+
+The teachers and the students will both get what they want. Phones can be beneficial to the school system. St...",Wiersz 221335 (Human),0,Human,1,AI,4.78%,95.22%
+"To test students on their knowledge, teachers have begun to assign projects rather than traditional tests. There has been a debate on if these projects should be designed by teachers or by students. I...",Wiersz 200080 (Human),0,Human,1,AI,9.47%,90.53%
+I feel that we should not have driverless cars. They could malfunction while someone is riding and cause an accident. There are also a lot of flaws to them. I also feel that most People wouldn't be ab...,Wiersz 402969 (Human),0,Human,1,AI,4.37%,95.63%
+"Some people can tell whether someone is happy or sad. They can observe what their emotions is. In the article ""Making Mona Lisa Smile"", shows how Leonardo da Vinci drew Mona Lisa. It also explains how...",Wiersz 278060 (Human),0,Human,1,AI,14.69%,85.31%
+"In the digital age, distance learning is emerging as a technological alternative to attending class in person. While the idea of students receiving education through the digital landscape is an intrig...",Wiersz 86576 (Human),0,Human,1,AI,9.92%,90.08%
+"A driverless car is a scary concept. Some say that it is completely insane, but that is what they said when Neil Armstrong came up with the idea of walking on the moon, and now walking on the moon is ...",Wiersz 163431 (Human),0,Human,1,AI,6.66%,93.34%
+Have you always wanted to help somebody and travel on the seas? Well now is your chance to join the seagoing cowboys. The seagoing cowboys help people in Europe during World War 2 by delivering suppli...,Wiersz 236710 (Human),0,Human,1,AI,5.75%,94.25%
+Drivers should not be able to use cell phones in any capacity while operating a vehicle because it's dangerous and a distraction. Driving while being on your phone increases your risk of crashing. It ...,Wiersz 115459 (Human),0,Human,1,AI,4.34%,95.66%
