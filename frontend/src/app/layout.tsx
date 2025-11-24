@@ -1,4 +1,6 @@
 'use client'
+
+import NavBar from "./components/NavBar";
 import "./globals.css";
 import KeycloakProviderWrapper from "../auth/KeycloakProviderWrapper"
 
@@ -19,6 +21,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Dongle:wght@700&display=swap" rel="stylesheet" />
       </head>
       <body>
+        <NavBar/>
         <svg xmlns="http://www.w3.org/2000/svg" style={{ position: "absolute", width: 0, height: 0 }}>
           <defs>
             <filter id="goosoft" x="-50%" y="-50%" width="200%" height="200%">
