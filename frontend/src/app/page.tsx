@@ -9,7 +9,7 @@ export default function LandingPage() {
 
     <div className="buttons" >
 
-      <InteractiveBubble />
+      {/* <InteractiveBubble /> */}
       <ButtonBubbles />
 
     </div>
