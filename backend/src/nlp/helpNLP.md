@@ -3,26 +3,31 @@
 ## 1. Struktura
 ```
 backend/src/nlp/
-├── __init__.py            # Wejście CLI (train / evaluate / predict)
 ├── artifacts/             # Modele, raporty, metryki z treningów
+│   ├── base_model/        # Pobrany model bazowy (opcjonalnie)
 │   ├── models/
 │   └── reports/
 ├── data/                  # Dane treningowe / walidacyjne (CSV)
-└── detector/
-    ├── analysis.py        # Statystyki datasetu i bucketów długości
-    ├── calibration.py     # Kalibracja modelu poprzez temperature scaling
-    ├── cli.py             # Implementacja komend CLI
-    ├── config.py          # Konfiguracja treningu i ścieżki artefaktów
-    ├── data.py            # Ładowanie i podział danych
-    ├── evaluation.py      # Metryki oraz raporty walidacyjne
-    ├── model_utils.py     # Ładowanie / zapisywanie modeli RoBERTa
-    ├── reporting.py       # Generowanie raportów JSON / CSV
-    └── training.py        # Pętla treningowa i logika optymalizacji
+├── detector/
+│   ├── analysis.py        # Statystyki datasetu i bucketów długości
+│   ├── artifacts.py       # Klasy zarządzające artefaktami treningu
+│   ├── calibration.py     # Kalibracja modelu poprzez temperature scaling
+│   ├── chunking.py        # Logika dzielenia tekstu na fragmenty
+│   ├── cli.py             # Implementacja komend CLI
+│   ├── config.py          # Konfiguracja treningu i ścieżki artefaktów
+│   ├── data.py            # Ładowanie i podział danych
+│   ├── evaluation.py      # Metryki oraz raporty walidacyjne
+│   ├── inference.py       # Logika predykcji (pojedyncza i segmentowa)
+│   ├── model_utils.py     # Ładowanie / zapisywanie modeli RoBERTa
+│   ├── reporting.py       # Generowanie raportów JSON / CSV
+│   └── training.py        # Pętla treningowa i logika optymalizacji
+└── utils/
+    └── download_base_model.py # Skrypt do pobierania bazowego modelu offline
 ```
 
 ## 2. Wymagania środowiskowe
 - Python 3.10+
-- `pip install -r backend/src/nlp/detector/requirements.txt`
+- Zainstalowane zależności (np. z `common/python/requirements.txt`).
 
 ## 3. Podstawowe komendy CLI
 Wszystkie polecenia uruchamiamy z katalogu `backend/src/nlp`:
@@ -35,7 +40,7 @@ python3 __init__.py train --epochs 1 --batch-size 4 --max-length 128
 ```bash
 python3 __init__.py evaluate --dataset-path data/validation.csv
 ```
-- Wyświetli metryki walidacyjne i zaktualizuje raporty (accuracy, F1, bucket length).
+- Wyświetli metryki walidacyjne i zaktualizuje raporty.
 
 ```bash
 python3 __init__.py predict --text "Przykładowy tekst do klasyfikacji"
