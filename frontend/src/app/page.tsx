@@ -12,7 +12,7 @@ export default function LandingPage() {
     <RegisterButton />
     <div className="buttons" >
 
-      <InteractiveBubble />
+      {/* <InteractiveBubble /> */}
       <ButtonBubbles />
 
     </div>
