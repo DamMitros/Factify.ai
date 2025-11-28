@@ -5,3 +5,6 @@
 **old**
 **/.DS_Store
 .dockerignore2
+backend/src/requirements.txt
+
+cron/src/requirements.txt
