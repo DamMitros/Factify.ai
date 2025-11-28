@@ -1,9 +1,9 @@
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable
 
 import matplotlib.pyplot as plt
-import numpy as np, pandas as pd
+import numpy as np
 
 def plot_confusion_matrix(cm: np.ndarray, labels: Iterable[str], output_path: Path) -> None:
 	fig, ax = plt.subplots(figsize=(6, 6))
@@ -39,36 +39,5 @@ def save_metrics(report: Dict[str, Dict[str, float]], accuracy: float, output_pa
 		"weighted_avg": report.get("weighted avg", {}),
 		"per_class": {k: v for k, v in report.items() if k not in {"accuracy", "macro avg", "weighted avg"}}
 	}
-	with output_path.open("w", encoding="utf-8") as handle:
-		json.dump(payload, handle, indent=2)
-
-def save_params(params: Dict[str, object], output_path: Path) -> None:
-	output_path.parent.mkdir(parents=True, exist_ok=True)
-	with output_path.open("w", encoding="utf-8") as handle:
-		json.dump(params, handle, indent=2)
-
-def save_dataset_stats(stats: Dict[str, object], output_path: Path) -> None:
-	output_path.parent.mkdir(parents=True, exist_ok=True)
-	with output_path.open("w", encoding="utf-8") as handle:
-		json.dump(stats, handle, indent=2)
-
-def save_fails(records: List[Dict[str, object]], output_path: Path) -> None:
-	if not records:
-		return
-	output_path.parent.mkdir(parents=True, exist_ok=True)
-	frame = pd.DataFrame.from_records(records)
-	frame.to_csv(output_path, index=False)
-
-def save_length_metrics(metrics: Dict[str, object], output_path: Path) -> None:
-	if not metrics:
-		return
-	output_path.parent.mkdir(parents=True, exist_ok=True)
-	with output_path.open("w", encoding="utf-8") as handle:
-		json.dump(metrics, handle, indent=2)
-
-def save_calibration_metadata(payload: Dict[str, object], output_path: Path) -> None:
-	if not payload:
-		return
-	output_path.parent.mkdir(parents=True, exist_ok=True)
 	with output_path.open("w", encoding="utf-8") as handle:
 		json.dump(payload, handle, indent=2)

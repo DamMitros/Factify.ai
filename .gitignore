@@ -4,7 +4,10 @@
 *Karta*
 **old**
 **/.DS_Store
+<<<<<<< HEAD
 .dockerignore2
 backend/src/requirements.txt
 
 cron/src/requirements.txt
+=======
+>>>>>>> 9dd38e5bbde42ded2bc648e8c510ead24b1cc162
