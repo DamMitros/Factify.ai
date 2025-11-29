@@ -104,7 +104,6 @@ body {
 .UserIcon {
   color: var(--foreground);
   height: 100%;
-
   
 
 }
@@ -128,7 +127,6 @@ body {
 
 .UserIcon:hover {
   color: rgb(212, 204, 204);
-
 }
 
 .UserDropdown {
