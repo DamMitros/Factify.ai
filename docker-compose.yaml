@@ -42,6 +42,11 @@ services:
       target: dev
     env_file:
       - .env
+    environment:
+      - WATCHPACK_POLLING=true
+      - WATCHPACK_POLLING_INTERVAL=1000
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=1000
     volumes:
       - ./frontend/src:/app
       - /app/node_modules
