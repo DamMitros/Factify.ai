@@ -1,8 +1,5 @@
-'use client'
-
 import NavBar from "./components/NavBar";
 import "./globals.css";
-import KeycloakProviderWrapper from "../auth/KeycloakProviderWrapper"
 
 export default function RootLayout({
   children,
@@ -46,9 +43,7 @@ export default function RootLayout({
           </defs>
         </svg>
 
-        <KeycloakProviderWrapper>
-          {children}
-        </KeycloakProviderWrapper>
+        {children}
       </body>
     </html>
   );
