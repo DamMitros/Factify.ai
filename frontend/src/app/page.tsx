@@ -18,7 +18,7 @@ export default function LandingPage() {
 
     </div>
     
-      <h1 className="main-page-title">Welcome to Factify.ai</h1>
+      <h1 className="main-page-title">11Welcome to Factify.ai</h1>
       <h2 className="main-page-subtitle">Begin your journey of authenticity with us!</h2>
     
     </>
