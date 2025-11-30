@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { JSX, useState } from "react";
 import TextAnalyzerOptions from "./TextAnalyzerOptions";
 
 export default function TextAnalyzer(): JSX.Element {
