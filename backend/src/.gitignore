@@ -6,3 +6,5 @@ __pycache__/
 **train.csv**
 **.pt**
 **a/
+main_mock.py 
+base_model/

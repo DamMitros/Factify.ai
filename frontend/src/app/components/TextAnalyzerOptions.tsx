@@ -1,4 +1,4 @@
-import React from "react";
+import React, { JSX } from "react";
 
 const options = [
     {
@@ -46,4 +46,3 @@ export default function TextAnalyzerOptions(): JSX.Element {
         </div>
     );
 }
-

@@ -39,8 +39,17 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      target: dev
     env_file:
       - .env
+    environment:
+      - WATCHPACK_POLLING=true
+      - WATCHPACK_POLLING_INTERVAL=1000
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=1000
+    volumes:
+      - ./frontend/src:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     networks:
