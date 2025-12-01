@@ -106,7 +106,7 @@ def helper_to_predict(text, detailed_raw, segment_params_raw):
 def helper_to_save_into_db(text, ai_prob_pct, user_id):
   try:
     database = db.get_database("factify")
-    collection = database["analisys"]
+    collection = database["analysis"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_pct,
@@ -177,7 +177,7 @@ def get_predictions_by_user(user_id: str):
 
     try:
         database = db.get_database("factify")
-        collection = database["analisys"]
+        collection = database["analysis"]
 
         cursor = collection.find({"user_id": user_id}).sort("_id", -1)
 
