@@ -9,14 +9,20 @@ COPY common/python/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-FROM base AS final
+RUN mkdir /modules
+ENV PYTHONPATH=/modules
+
+FROM base AS dev
 WORKDIR /app
 
-RUN mkdir /modules
+CMD ["python", "main.py"]
 
-ENV PYTHONPATH=/modules
+FROM base AS prod
+WORKDIR /app
 
 COPY cron/src/ .
 COPY common ./modules/common
+
+RUN python nlp/utils/download_base_model.py
 
 CMD ["python", "main.py"]
