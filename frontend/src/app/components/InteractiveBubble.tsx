@@ -21,8 +21,8 @@ export default function InteractiveBubble() {
     tgY.current = curY.current;
 
     function animate() {
-      curX.current += (tgX.current - curX.current) / 20; 
-      curY.current += (tgY.current - curY.current) / 20;
+      curX.current += (tgX.current - curX.current) ; 
+      curY.current += (tgY.current - curY.current) ;
 
       if (el) {
         el.style.left = `${Math.round(curX.current)}px`;

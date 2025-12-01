@@ -48,6 +48,7 @@
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --gradient-bg: linear-gradient(40deg, #0e0e0f, #2c2a3a);
   }
 }
 
@@ -161,9 +162,16 @@ body {
   position: relative;
   overflow: hidden;
 }
+.landingMainBackground {
+  height: 100vh;
+  width: 100vw;
+  filter: url(#gooLamp);
+  will-change: filter;
+  overflow: hidden;
+}
 
 .mainBackground {
-  /* background:var(--gradient-bg) ; */
+  background:var(--gradient-bg) ;
   height: 100vh;
   width: 100vw;
   filter: url(#goosoft);
@@ -584,4 +592,81 @@ h1,h3{
   font-size: 14px;
   line-height: 1.4;
   max-width: 520px;
+}
+
+.text-analyzer-error {
+  color: #ff4444;
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(255, 68, 68, 0.1);
+  border-radius: 8px;
+  border-left: 3px solid #ff4444;
+}
+
+.text-analyzer-results {
+  margin-top: 24px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.text-analyzer-results h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.text-analyzer-results p {
+  margin: 8px 0;
+}
+
+.results-segments {
+  margin-top: 16px;
+}
+
+.results-segments summary {
+  cursor: pointer;
+  font-weight: 500;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  user-select: none;
+}
+
+.results-segments summary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.segments-list {
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 12px;
+  padding-right: 8px;
+}
+
+.segment-item {
+  margin-top: 12px;
+  padding-left: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.segment-item:last-child {
+  border-bottom: none;
+}
+
+.segment-title {
+  margin: 0 0 4px 0;
+  font-weight: 600;
+}
+
+.segment-probabilities {
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.segment-preview {
+  margin: 4px 0 0 0;
+  font-size: 14px;
+  opacity: 0.8;
 }
