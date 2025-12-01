@@ -10,14 +10,17 @@ export default function LandingPage() {
     
     <div className="buttons" >
 
-      {/* <InteractiveBubble /> */}
+      <InteractiveBubble />
       <ButtonBubbles />
+   
 
     </div>
-    <div className="mainBackground">
-      <Bubbles />
+       <div className="landingMainBackground">
+         <InteractiveBubble />
+         <Bubbles />
 
-    </div>
+      </div>
+  
     
       <h1 className="main-page-title">Welcome to Factify.ai</h1>
       <h2 className="main-page-subtitle">Begin your journey of authenticity with us!</h2>

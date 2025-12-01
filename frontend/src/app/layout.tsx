@@ -33,13 +33,13 @@ export default function RootLayout({
                 <feBlend in="SourceGraphic" in2="goo" />
               </filter>
 
-              <filter id="goob" x="-50%" y="-50%" width="200%" height="200%">
+              <filter id="gooLamp" x="-50%" y="-50%" width="200%" height="200%">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="22" result="blur" />
                 <feColorMatrix in="blur" mode="matrix" values="
-                  1 0 0 0 0
-                  0 1 0 0 0
-                  0 0 1 0 0
-                  0 0 0 18 -12" result="goo" />
+                    1 0 0 0 0
+                    0 1 0 0 0
+                    0 0 1 0 0
+                    0 0 0 20 -8" result="goo" />
                 <feBlend in="SourceGraphic" in2="goo" />
               </filter>
             </defs>
