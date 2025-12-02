@@ -10,6 +10,27 @@ export default function Bubbles() {
                     </filter>
                 </defs>
             </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" style={{ position: "absolute", width: 0, height: 0 }}>
+            <defs>
+              <filter id="lensFilter" x="0%" y="0%" width="100%" height="100%" filterUnits="objectBoundingBox">
+                <feComponentTransfer in="SourceAlpha" result="alpha">
+                  <feFuncA type="identity" />
+                </feComponentTransfer>
+                
+
+                <feGaussianBlur in="alpha" stdDeviation="40" result="blur" />
+
+                <feDisplacementMap
+                  in="SourceGraphic"
+                  in2="blur"
+                  scale="100"
+                  xChannelSelector="A"
+                  yChannelSelector="A"
+                  
+                />
+              </filter>
+            </defs>
+          </svg>
             <div className="bubbles">
                 <div className="bubble bubble1"></div>
                 <div className="bubble bubble2"></div>
