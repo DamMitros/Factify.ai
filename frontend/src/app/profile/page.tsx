@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useKeycloak } from '../../auth/KeycloakProviderWrapper';
 import { api } from '../../lib/api'
+import AnalysisHistory from '../components/AnalysisHistory';
 
 interface UserProfile {
   username: string;
@@ -53,7 +54,6 @@ export default function ProfilePage() {
       <div>
         <h1>Błąd</h1>
         <p>{error}</p>
-        <button onClick={() => router.push('/')}>Wróć do strony głównej</button>
       </div>
     );
   }
@@ -62,23 +62,21 @@ export default function ProfilePage() {
 
   return (
     <div>
-      <h1>Profil użytkownika</h1>
+      
+      <h1>Hello {profile.username}</h1>
+      <button className="back-button" onClick={() => router.push('/')}> Retrun </button>
+
+      {/* <h1>Profil użytkownika</h1>
       <div>
         <p><strong>Nazwa użytkownika:</strong> {profile.username}</p>
         <p><strong>Imię:</strong> {profile.name}</p>
         <p><strong>Email:</strong> {profile.email}</p>
         <p><strong>Role:</strong> {profile.roles.join(', ')}</p>
-      </div>
+      </div> */}
       
-      <div>
-        <button onClick={() => router.push('/')}>
-          Wróć do strony głównej
-        </button>
-        
-        <button onClick={() => keycloak?.logout()}>
-          Wyloguj
-        </button>
-      </div>
+      <AnalysisHistory/>
+
+    
     </div>
   );
 }
