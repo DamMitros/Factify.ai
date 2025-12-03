@@ -86,6 +86,9 @@ def helper_to_predict(text, detailed_raw, segment_params_raw):
   if wants_segments:
     response["overall"] = segmented["overall"]
     response["segments"] = segmented["segments"]
+    
+  
+
     response["segment_params"] = segmented["params"]
     response["mc_dropout_passes"] = segmented.get("mc_dropout_passes")
     response["temperature"] = segmented.get("temperature")
@@ -103,14 +106,19 @@ def helper_to_predict(text, detailed_raw, segment_params_raw):
   
   return response, ai_prob_pct
 
-def helper_to_save_into_db(text, ai_prob_pct, user_id):
+def helper_to_save_into_db(text, ai_prob_pct, user_id, response_data=None):
   try:
+    from datetime import datetime
     database = db.get_database("factify")
     collection = database["analisys"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_pct,
-        "user_id": user_id
+        "user_id": user_id,
+        "created_at": datetime.utcnow(),
+        "segments": response_data.get("segments") if response_data else None,
+        "overall": response_data.get("overall") if response_data else None,
+        
     }
     collection.insert_one(doc)
   except Exception as e:
@@ -131,6 +139,7 @@ def predict_endpoint():
     text,
     ai_prob_pct,
     user_id=str(payload.get("user_id", "")).strip() or None,
+    response_data=response
   )
   
   return jsonify(response)
@@ -165,6 +174,7 @@ def predict_file_endpoint():
     text,
     ai_prob_pct,
     user_id=str(payload.get("user_id", "")).strip() or None,
+    response_data=response
   )
   print("Zapisalem do bazy")
   return jsonify(response)
@@ -185,7 +195,12 @@ def get_predictions_by_user(user_id: str):
             {
                 "id": str(doc.get("_id")),
                 "text": doc.get("text"),
-                "ai_probability": doc.get("ai_probability")
+                "ai_probability": doc.get("ai_probability"),
+                "human_probability": 100 - doc.get("ai_probability", 0),
+                "created_at": doc.get("created_at"),
+                "segments": doc.get("segments"),
+                "overall": doc.get("overall"),
+                "confidence": doc.get("overall", {}).get("confidence"),
             }
             for doc in cursor
         ]

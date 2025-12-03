@@ -53,7 +53,7 @@ export default function UserMenu() {
                     {authenticated ? (
                         <>
                             <Link href="/profile" className="UserDropdownItem" onClick={() => setIsOpen(false)}>
-                                Profile
+                                Analyze History
                             </Link>
                             <button className="UserDropdownItem" onClick={handleLogout}>
                                 Log out

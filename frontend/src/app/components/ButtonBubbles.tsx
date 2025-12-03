@@ -32,11 +32,31 @@ const bubbles = [
 export default function ButtonBubbles() {
 	const router = useRouter();
 	const routes = ["/AnalizeText", "/AnalizePhotos", null];
+	const [activeButtons, setActiveButtons] = useState<Set<number>>(new Set());
 
 	const handleClick = (index: number) => {
 		const route = routes[index];
 		if (route) router.push(route);
 	};
+
+	const handleMouseEnter = (index: number) => {
+		setActiveButtons(prev => new Set(prev).add(index));
+	};
+
+	useEffect(() => {
+		if (activeButtons.size > 0) {
+			const timers = Array.from(activeButtons).map(buttonIndex =>
+				setTimeout(() => {
+					setActiveButtons(prev => {
+						const newSet = new Set(prev);
+						newSet.delete(buttonIndex);
+						return newSet;
+					});
+				}, 600)
+			);
+			return () => timers.forEach(timer => clearTimeout(timer));
+		}
+	}, [activeButtons]);
 
 	return (
 		<>
@@ -44,8 +64,9 @@ export default function ButtonBubbles() {
 				{bubbles.map((bubble, index) => (
 					<button
 						key={bubble.id}
-						className="buttonBubble"
+						className={`buttonBubble ${activeButtons.has(index) ? "animate-shine" : ""}`}
 						onClick={() => handleClick(index)}
+						onMouseEnter={() => handleMouseEnter(index)}
 						type="button"
 					>
 						<div className="glass-filter" />
