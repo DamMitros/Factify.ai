@@ -7,17 +7,19 @@ import LoginButton from "./components/LoginButton";
 export default function LandingPage() {
   return (
     <>
-    
-    <div className="buttons" >
+       <div className="landingMainBackground">
+         <InteractiveBubble />
+         <Bubbles />
 
-      {/* <InteractiveBubble /> */}
-      <ButtonBubbles />
+      </div>
+      
+        {/* <div className="buttons" > */}
 
-    </div>
-    <div className="mainBackground">
-      <Bubbles />
+          <ButtonBubbles />
+      
 
-    </div>
+        {/* </div> */}
+      
     
       <h1 className="main-page-title">Welcome to Factify.ai</h1>
       <h2 className="main-page-subtitle">Begin your journey of authenticity with us!</h2>
