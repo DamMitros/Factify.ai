@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import keycloak from './keycloak'
+import { api } from '../lib/api'
 
 type KeycloakContextType = {
   keycloak: typeof keycloak | null
@@ -31,6 +32,20 @@ export function KeycloakProviderWrapper({ children }: { children: ReactNode }) {
         setInitialized(true)
       })
   }, [])
+
+  useEffect(() => {
+    if (authenticated && keycloak?.token) {
+      api.put('/user/register', {}, { requireAuth: true })
+        .then(({ status }) => {
+          if (status === 201) {
+            console.log('Added user to database');
+          } else if (status === 200) {
+            console.log('User already synced with database');
+          }
+        })
+        .catch((err) => console.error('Error syncing user', err));
+    }
+  }, [authenticated, keycloak?.token])
 
   if (!initialized) return <div>Loading auth...</div>
 
