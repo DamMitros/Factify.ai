@@ -2,19 +2,18 @@ from __future__ import annotations
 
 from flask import Flask, current_app
 from pymongo import MongoClient
+import os
 
-import config
+MONGODB_USER = os.getenv("MONGODB_USER")
+MONGODB_PASSWORD = os.getenv("MONGODB_PASSWORD")
+MONGODB_HOST = os.getenv("MONGODB_HOST")
+MONGODB_PORT = os.getenv("MONGODB_PORT")
 
 _client: MongoClient | None = None
 
 
 def _build_mongo_uri() -> str:
-    user = config.MONGODB_USER
-    password = config.MONGODB_PASSWORD
-    host = config.MONGODB_HOST
-    port = config.MONGODB_PORT
-
-    return f"mongodb://{user}:{password}@{host}:{port}"
+    return f"mongodb://{MONGODB_USER}:{MONGODB_PASSWORD}@{MONGODB_HOST}:{MONGODB_PORT}"
 
 
 def init_app(app: Flask) -> None:
@@ -26,6 +25,14 @@ def init_app(app: Flask) -> None:
 
     app.extensions = getattr(app, "extensions", {})
     app.extensions["mongo_client"] = _client
+
+
+def init_standalone() -> None:
+    global _client
+
+    if _client is None:
+        uri = _build_mongo_uri()
+        _client = MongoClient(uri)
 
 
 def get_client() -> MongoClient:
