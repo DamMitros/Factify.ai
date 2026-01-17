@@ -1,0 +1,25 @@
+{
+  "run_name": "roberta_humanized_v1",
+  "model_name": "/home/dmitros/factify/Factify.ai/backend/src/nlp/artifacts/base_model",
+  "num_labels": 2,
+  "hyperparameters": {
+    "epochs": 3,
+    "batch_size": 8,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_length": 512,
+    "calibration_size": 0.1,
+    "mc_dropout_enabled": true,
+    "mc_dropout_passes": 16
+  },
+  "data": {
+    "path": "data/Training_Essay_Data_humanized.csv",
+    "test_size": 0.2,
+    "random_state": 42
+  },
+  "seeds": {
+    "training": 42,
+    "mc_dropout": 42
+  }
+}
