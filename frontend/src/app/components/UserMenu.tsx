@@ -55,6 +55,11 @@ export default function UserMenu() {
                             <Link href="/profile" className="UserDropdownItem" onClick={() => setIsOpen(false)}>
                                 Analyze History
                             </Link>
+                            { (keycloak?.hasRealmRole("admin")) && (
+                                <Link href="/admin" className="UserDropdownItem" onClick={() => setIsOpen(false)}>
+                                    Admin Panel
+                                </Link>
+                            )}
                             <button className="UserDropdownItem" onClick={handleLogout}>
                                 Log out
                             </button>
