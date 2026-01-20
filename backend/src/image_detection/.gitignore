@@ -1,0 +1,24 @@
+# Modele
+artifacts/models/*.pth
+artifacts/models/*.pt
+
+# Dane treningowe
+data/ai/
+data/real/
+
+# Raporty
+artifacts/reports/*.json
+artifacts/reports/*.txt
+
+# Cache
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+
+# Temp
+*.tmp
+*.log

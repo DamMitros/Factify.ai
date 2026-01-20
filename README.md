@@ -17,6 +17,8 @@
     - `main.py` - punkt startowy aplikacji Flask
     - `config.py` - czyta zmienne środowiskowe i zapisuje je w zmiennych globalnych
     - `routes/` - folder z blueprint'ami (grupami ścieżek)
+    - `nlp/` - moduł detekcji tekstu wygenerowanego przez AI
+    - `image_detection/` - moduł detekcji obrazów wygenerowanych przez AI
     - `requirements.txt` - zależności backend'u
 - `cron/`
   - `Dockerfile` - obraz cron'a
@@ -91,6 +93,12 @@ Opisy opcji znajdują się w pliku `.env.dist`. **Większości wartości nie trz
 - `backend/src/routes`
   - **Tu znajdują się definicje grup ścieżek.**
   - Idealne miejsce na dodawanie nowych funkcjonalności do backendu.
+- `backend/src/nlp`
+  - **Moduł do analizy tekstu** (detekcja AI-generated text).
+  - Zobacz: `backend/src/nlp/helpNLP.md`
+- `backend/src/image_detection`
+  - **Moduł do analizy obrazów** (detekcja AI-generated images).
+  - Zobacz: `backend/src/image_detection/README.md`
 
 #### Dodawanie nowego blueprint'u (grupy ścieżek):
 1. Utwórz plik w `backend/src/routes`, np. `users.py`:
