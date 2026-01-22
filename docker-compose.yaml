@@ -26,6 +26,9 @@ services:
     restart: on-failure
     env_file:
       - .env
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONFAULTHANDLER: 1
     ports:
       - "8081:8080"
     volumes:
