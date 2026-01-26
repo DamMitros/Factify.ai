@@ -4,7 +4,7 @@ from flask import Flask, Blueprint
 from flask_cors import CORS
 
 from nlp.detector.model_utils import load_model_artifacts
-from routes import example_bp, nlp_bp, user_bp, admin_bp, analysis, social_bp
+from routes import example_bp, nlp_bp, user_bp, admin_bp, analysis, social_bp, image_bp
 from common.python import db
 
 import config
@@ -23,6 +23,7 @@ def register_route(path: str, blueprint: Blueprint):
 register_route("/example", example_bp)
 register_route("/nlp", nlp_bp)
 register_route("/user", user_bp)
+register_route("/image", image_bp)  
 register_route("/analysis", analysis)
 register_route("/admin", admin_bp)
 register_route("/social", social_bp)
