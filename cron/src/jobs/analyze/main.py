@@ -10,14 +10,16 @@ def task(payload: TaskPayload, ctx: TaskContext):
 
     response, ai_prob_pct = helper_to_predict(text, {})
 
-    database = ctx.db.get_database("factify")
+    database = ctx.db.get_database("factify_ai")
     collection = database["analysis"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_pct,
         "user_id": user_id
     }
-    collection.insert_one(doc)
+    result = collection.insert_one(doc)
+
+    return result.inserted_id
 
 
 print("Loading NLP model artifacts...")

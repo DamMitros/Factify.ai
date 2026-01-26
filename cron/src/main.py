@@ -3,20 +3,26 @@ import time
 import os
 import traceback
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Callable
 import importlib
 
 from pymongo import ReturnDocument
 from pymongo.collection import Collection
 
 from common.python import db
+from common.python.llm import LLM
 from context import TaskContext
+from types_ import TaskPayload
 
-DB_NAME = os.getenv("MONGODB_DB", "factify")
+TaskHandlerFunction = Callable[[TaskPayload, TaskContext], Any]
+
+DB_NAME = os.getenv("MONGODB_DB", "factify_ai")
 TASKS_COLLECTION = "cron_tasks"
 POLL_INTERVAL_SEC = float(os.getenv("CRON_POLL_INTERVAL_SEC", "2"))
 
 handlers_cache = {}
+
+llm = LLM()
 
 
 def utcnow() -> datetime:
@@ -68,16 +74,18 @@ def process_task(col: Collection, task: dict[str, Any], ctx: TaskContext) -> Non
         print(traceback.format_exc(), file=sys.stderr)
         handler_mod = None
 
-    handler_fn = handler_mod.task if handler_mod else None
-    error_info = None
+    handler_fn: TaskHandlerFunction | None = handler_mod.task if handler_mod else None
+    error_info: str | None = None
+    handler_return_value: Any | None = None
 
     if handler_fn is None:
         error_info = f"No handler for task '{name}'"
     else:
         try:
-            handler_fn(payload, ctx)
+            handler_return_value = handler_fn(payload, ctx)
         except Exception:
             error_info = traceback.format_exc()
+            print(f"❌ Error processing task '{name}':\n{error_info}", file=sys.stderr)
 
     update = {
         "$set": {
@@ -90,6 +98,9 @@ def process_task(col: Collection, task: dict[str, Any], ctx: TaskContext) -> Non
     if error_info:
         update["$set"]["lastError"] = error_info
 
+    if handler_return_value:
+        update["$set"]["return_value"] = handler_return_value
+
     col.update_one({"_id": task["_id"]}, update)
 
 
@@ -98,6 +109,7 @@ def loop(col: Collection) -> None:
 
     ctx = TaskContext()
     ctx.db = db.get_client()
+    ctx.llm = llm
 
     while True:
         task = claim_due_task(col)
