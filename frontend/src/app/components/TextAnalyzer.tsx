@@ -30,14 +30,7 @@ export default function TextAnalyzer(): JSX.Element {
             const { data } = await api.post('/nlp/predict', {
                 text: text,
                 detailed: true,
-                user_id: userId,
-                // segment_params: {
-                //     words_per_chunk: 50,
-                //     stride_words: 25,
-                //     min_words: 10,
-                //     max_length: 128
-                // }
-            }, { requireAuth: false });
+            }, { requireAuth: authenticated });
 
             setResult(data);
         } catch (err: any) {

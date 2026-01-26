@@ -49,7 +49,7 @@
       {
         "id": "54245c1a-cd8e-445c-a593-c5d0460be6a8",
         "name": "admin",
-        "description": "",
+        "description": "Being admin could change anything, you've got the power",
         "composite": false,
         "clientRole": false,
         "containerId": "f044b14d-eca3-4e49-85a7-e5eb21ce4fc6",
