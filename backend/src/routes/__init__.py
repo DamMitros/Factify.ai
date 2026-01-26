@@ -3,3 +3,4 @@ from .nlp import nlp_bp
 from .user import user_bp
 from .analysis import analysis
 from .admin import admin_bp
+from .social import social_bp
