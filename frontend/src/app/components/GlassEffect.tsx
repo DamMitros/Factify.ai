@@ -1,4 +1,12 @@
-// import React from "react";
+import { ReactNode } from "react";
+
+const GlassEffect = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
+  <div className={`backdrop-blur-md bg-white/5 border border-white/10 shadow-xl ${className}`}>
+    {children}
+  </div>
+);
+
+export default GlassEffect;
 
 // export default function GlassEffect() {
 //   return (

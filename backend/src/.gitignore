@@ -8,3 +8,6 @@ __pycache__/
 **a/
 main_mock.py 
 base_model/
+
+image_detection/artifacts/models/*
+!image_detection/artifacts/models/.gitkeep
