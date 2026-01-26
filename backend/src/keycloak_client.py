@@ -1,4 +1,4 @@
-from keycloak import KeycloakOpenID
+from keycloak import KeycloakOpenID, KeycloakAdmin
 import os
 from jose import jwt, JWTError, ExpiredSignatureError
 from flask import jsonify,request, g
@@ -9,6 +9,8 @@ from typing import Optional
 KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://keycloak:8080/")
 KEYCLOAK_REALM= os.getenv("KEYCLOAK_REALM", "factify.ai")
 KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "frontend")
+KEYCLOAK_ADMIN_USER = os.getenv("KEYCLOAK_ADMIN_USERNAME", "admin")
+KEYCLOAK_ADMIN_PASSWORD = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin")
 
 keycloak_openid = KeycloakOpenID(
     server_url = KEYCLOAK_SERVER_URL,
@@ -16,8 +18,30 @@ keycloak_openid = KeycloakOpenID(
     realm_name=KEYCLOAK_REALM
 )
 
+def get_keycloak_admin():
+    return KeycloakAdmin(
+        server_url=KEYCLOAK_SERVER_URL,
+        username=KEYCLOAK_ADMIN_USER,
+        password=KEYCLOAK_ADMIN_PASSWORD,
+        realm_name=KEYCLOAK_REALM,
+        user_realm_name='master',
+        verify=True
+    )
 
 _PUBLIC_KEY: Optional[str] = None
+
+def require_auth_optional(f):
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+        g.user = None
+        if auth_header and auth_header.startswith("Bearer "):
+            token = auth_header.split(" ")[1]
+            decoded_token, error_response, status_code = _decode_token(token)
+            if decoded_token:
+                g.user = decoded_token
+        return f(*args, **kwargs)
+    return wrapper
 
 
 def _get_public_key() -> str:

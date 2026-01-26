@@ -1,11 +1,13 @@
 import json
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, g
 from werkzeug.exceptions import BadRequest, InternalServerError
+from datetime import datetime
 
 from nlp import predict_proba, predict_segmented_text
 from nlp.detector.config import SEGMENT_MIN_WORDS, SEGMENT_STRIDE_WORDS, SEGMENT_WORD_TARGET
 from common.python import db
 from common.python.text_extractor import extract_text
+from keycloak_client import require_auth_optional
 
 nlp_bp = Blueprint("nlp", __name__)
 
@@ -108,23 +110,23 @@ def helper_to_predict(text, detailed_raw, segment_params_raw):
 
 def helper_to_save_into_db(text, ai_prob_pct, user_id, response_data=None):
   try:
-    from datetime import datetime
     database = db.get_database("factify")
-    collection = database["analisys"]
+    collection = database["analysis"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_pct,
         "user_id": user_id,
-        "created_at": datetime.utcnow(),
+        "timestamp": datetime.utcnow(),
         "segments": response_data.get("segments") if response_data else None,
         "overall": response_data.get("overall") if response_data else None,
-        
+        "action": "text_analysis"
     }
     collection.insert_one(doc)
   except Exception as e:
     current_app.logger.exception(f"MongoDB insert failed: {e}")
 
 @nlp_bp.route("/predict", methods=["POST"])
+@require_auth_optional
 def predict_endpoint():
   payload = request.get_json(silent=True) or {}
   text = str(payload.get("text", "")).strip()
@@ -135,10 +137,17 @@ def predict_endpoint():
     segment_params_raw=payload.get("segment_params"),
   )
 
+  user_id = None
+  if g.user:
+      user_id = g.user.get("sub")
+      print(f"Authenticated user_id for prediction: {user_id}")
+  else:
+      print("No authenticated user for prediction")
+
   helper_to_save_into_db(
     text,
     ai_prob_pct,
-    user_id=str(payload.get("user_id", "")).strip() or None,
+    user_id=user_id,
     response_data=response
   )
   
@@ -146,37 +155,32 @@ def predict_endpoint():
 
 @nlp_bp.route("/predict_file", methods=["POST"])
 def predict_file_endpoint():
-  print("Przyjałem do odbioru")
   if "file" not in request.files:
     raise BadRequest("No file part in the request.")
   
   file = request.files["file"]
   if file.filename == "":
     raise BadRequest("No selected file.")
-  print("zaczałem extract")
   try:
     text = extract_text(file, filename=file.filename)
-    print("Skonczylem extract")
   except Exception as e:
     current_app.logger.exception(f"Text extraction failed: {e}")
     raise InternalServerError("Failed to extract text from the uploaded file.")
 
-  print(text)
   payload = request.form or {}
   response, ai_prob_pct = helper_to_predict(
     text,
     detailed_raw=payload.get("detailed"),
     segment_params_raw=payload.get("segment_params"),
   )
-  print("Skonczylem predict")
-  print("Zapisuje do bazy")
+
   helper_to_save_into_db(
     text,
     ai_prob_pct,
     user_id=str(payload.get("user_id", "")).strip() or None,
     response_data=response
   )
-  print("Zapisalem do bazy")
+
   return jsonify(response)
 
 @nlp_bp.route("/predictions/<user_id>", methods=["GET"])
@@ -187,9 +191,9 @@ def get_predictions_by_user(user_id: str):
 
     try:
         database = db.get_database("factify")
-        collection = database["analisys"]
+        collection = database["analysis"]
 
-        cursor = collection.find({"user_id": user_id}).sort("_id", -1)
+        cursor = collection.find({"user_id": user_id}).sort("timestamp", -1)
 
         results = [
             {
@@ -197,7 +201,7 @@ def get_predictions_by_user(user_id: str):
                 "text": doc.get("text"),
                 "ai_probability": doc.get("ai_probability"),
                 "human_probability": 100 - doc.get("ai_probability", 0),
-                "created_at": doc.get("created_at"),
+                "created_at": doc.get("timestamp"),
                 "segments": doc.get("segments"),
                 "overall": doc.get("overall"),
                 "confidence": doc.get("overall", {}).get("confidence"),

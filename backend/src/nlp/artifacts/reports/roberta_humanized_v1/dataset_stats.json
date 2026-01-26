@@ -1,0 +1,38 @@
+{
+  "train": {
+    "samples": 29362,
+    "class_counts": {
+      "0": 12605,
+      "1": 16757
+    },
+    "mean_word_count": 364.1073155779579,
+    "median_word_count": 343.0,
+    "std_word_count": 163.20567449949888,
+    "min_word_count": 1,
+    "max_word_count": 1650
+  },
+  "test": {
+    "samples": 8157,
+    "class_counts": {
+      "0": 3502,
+      "1": 4655
+    },
+    "mean_word_count": 360.47407134976095,
+    "median_word_count": 342.0,
+    "std_word_count": 161.3100361521393,
+    "min_word_count": 5,
+    "max_word_count": 1367
+  },
+  "full": {
+    "samples": 37519,
+    "class_counts": {
+      "0": 16107,
+      "1": 21412
+    },
+    "mean_word_count": 363.3174125109944,
+    "median_word_count": 343.0,
+    "std_word_count": 162.8023198542951,
+    "min_word_count": 1,
+    "max_word_count": 1650
+  }
+}
