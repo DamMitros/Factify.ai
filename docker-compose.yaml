@@ -26,6 +26,9 @@ services:
     restart: on-failure
     env_file:
       - .env
+    environment:
+      PYTHONUNBUFFERED: 1
+      PYTHONFAULTHANDLER: 1
     ports:
       - "8081:8080"
     volumes:
@@ -85,7 +88,8 @@ services:
       - KC_DB_PASSWORD=${POSTGRES_DB_PASSWORD}
       - KC_HOSTNAME=localhost
     ports:
-      - "${KEYCLOAK_PORT}:8080"
+#      - "${KEYCLOAK_PORT}:8080"
+      - "${KEYCLOAK_PORT}:8443"
     depends_on:
       - keycloak-db
     networks:
