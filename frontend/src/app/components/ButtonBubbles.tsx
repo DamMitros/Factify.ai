@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 const bubbles = [
 	{ id: 1, label: "Analyze text" },
 	{ id: 2, label: "Analyze photos" },
-	{ id: 3, label: "" },
+	{ id: 3, label: "Community" },
 ];
 
 // const randomShadow = () => {
@@ -31,7 +31,7 @@ const bubbles = [
 
 export default function ButtonBubbles() {
 	const router = useRouter();
-	const routes = ["/AnalizeText", "/AnalizePhotos", null];
+	const routes = ["/AnalizeText", "/AnalizePhotos", "/Community"];
 	const [activeButtons, setActiveButtons] = useState<Set<number>>(new Set());
 
 	const handleClick = (index: number) => {
