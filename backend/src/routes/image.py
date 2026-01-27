@@ -87,17 +87,14 @@ def detect_ai_image():
         raise BadRequest("Nie wybrano pliku.")
     
     try:
-        # Wczytanie obrazu z przesłanego pliku
         contents = file.read()
         image = Image.open(io.BytesIO(contents))
-        
-        # Predykcja
+
         detector = get_detector()
         result = detector.predict(image)
         
         ai_prob_pct = round(result["ai"] * 100, 2)
-        
-        # Generowanie miniaturki Base64
+
         image_preview = generate_thumbnail(image)
         
         user_id = None
@@ -107,7 +104,6 @@ def detect_ai_image():
         else:
             print("No authenticated user for image prediction")
 
-        # Zapis do bazy danych
         helper_to_save_image_to_db(
             filename=file.filename,
             ai_prob_pct=ai_prob_pct,
@@ -116,7 +112,6 @@ def detect_ai_image():
             result_data=result
         )
 
-        # Zwracamy wynik
         return jsonify({
             "filename": file.filename,
             "predictions": result,
