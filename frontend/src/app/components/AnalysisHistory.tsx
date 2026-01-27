@@ -30,27 +30,34 @@ export default function AnalysisHistory() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string | number>>(new Set());
+    const [activeTab, setActiveTab] = useState<'text' | 'image'>('text');
 
     useEffect(() => {
         if (!userId) return;
 
         const fetchPredictions = async () => {
+            setLoading(true);
+            setError(null);
             try {
-                const { data } = await api.get(`/nlp/predictions/${userId}`, { 
+                const endpoint = activeTab === 'text'
+                    ? `/nlp/predictions/${userId}`
+                    : `/image/predictions/${userId}`;
+
+                const { data } = await api.get(endpoint, {
                     requireAuth: true
                 });
-                console.log("Predictions data:", data);
+                console.log(`${activeTab} Predictions data:`, data);
                 setPredictions(Array.isArray(data) ? data : []);
             } catch (err: any) {
-                console.error("Failed to fetch predictions:", err);
-                setError(err.message || "Failed to fetch predictions");
+                console.error(`Failed to fetch ${activeTab} predictions:`, err);
+                setError(err.message || `Failed to fetch ${activeTab} predictions`);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchPredictions();
-    }, [userId]);
+    }, [userId, activeTab]);
 
     const toggleExpanded = (id: string | number) => {
         setExpandedItems(prev => {
@@ -64,13 +71,31 @@ export default function AnalysisHistory() {
         });
     };
 
-    if (loading) return <div className="analysis-history-loading">Loading...</div>;
-    if (error) return <div className="analysis-history-error">Error: {error}</div>;
-
     return (
         <div className="analysis-history">
-            <h2>Analysis History</h2>
-            {predictions.length === 0 ? (
+            <div className="history-header">
+                <h2>Analysis History</h2>
+                <div className="history-tabs">
+                    <button
+                        className={`history-tab ${activeTab === 'text' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('text')}
+                    >
+                        Text Analysis
+                    </button>
+                    <button
+                        className={`history-tab ${activeTab === 'image' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('image')}
+                    >
+                        Photo Analysis
+                    </button>
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="analysis-history-loading">Loading...</div>
+            ) : error ? (
+                <div className="analysis-history-error">Error: {error}</div>
+            ) : predictions.length === 0 ? (
                 <p className="analysis-history-empty">No analyses to display</p>
             ) : (
                 <ul className="predictions-list">
@@ -79,9 +104,11 @@ export default function AnalysisHistory() {
                         const timestamp = pred.created_at || pred.timestamp;
                         const formattedDate = formatDate(timestamp);
                         const isExpanded = expandedItems.has(itemId);
-                        const shouldShowMore = pred.text && pred.text.length > 100;
-                        const displayText = isExpanded ? pred.text : truncateText(pred.text);
-                        
+
+                        const isImage = activeTab === 'image' || pred.type === 'image';
+                        const shouldShowMore = !isImage && pred.text && pred.text.length > 100;
+                        const displayText = !isImage ? (isExpanded ? pred.text : truncateText(pred.text)) : null;
+
                         return (
                             <li key={itemId} className="prediction-item">
                                 {timestamp && (
@@ -89,24 +116,42 @@ export default function AnalysisHistory() {
                                         <div className="prediction-timestamp">{formattedDate}</div>
                                     </div>
                                 )}
-                                
-                                <div className="prediction-text-label">Analyzed Text:</div>
-                                <p className="prediction-text">{displayText}</p>
-                                
-                                {shouldShowMore && (
-                                    <button
-                                        className="see-more-button"
-                                        onClick={() => toggleExpanded(itemId)}
-                                    >
-                                        {isExpanded ? 'Show less' : 'See more'}
-                                    </button>
+
+                                {isImage ? (
+                                    <div className="prediction-image-container">
+                                        <div className="prediction-text-label">Analyzed Image:</div>
+                                        {pred.image_preview && (
+                                            <a href={pred.image_preview} target="_blank" rel="noopener noreferrer">
+                                                <img
+                                                    src={pred.image_preview}
+                                                    alt={pred.filename || "Analyzed image"}
+                                                    className="prediction-thumbnail"
+                                                />
+                                            </a>
+                                        )}
+                                        <p className="prediction-filename">{pred.filename}</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="prediction-text-label">Analyzed Text:</div>
+                                        <p className="prediction-text">{displayText}</p>
+
+                                        {shouldShowMore && (
+                                            <button
+                                                className="see-more-button"
+                                                onClick={() => toggleExpanded(itemId)}
+                                            >
+                                                {isExpanded ? 'Show less' : 'See more'}
+                                            </button>
+                                        )}
+                                    </>
                                 )}
-                                
+
                                 <div className="prediction-probability">
                                     <span className="prediction-probability-label">AI Probability:</span>
                                     <div className="probability-bar">
-                                        <div 
-                                            className="probability-bar-fill" 
+                                        <div
+                                            className="probability-bar-fill"
                                             style={{ width: `${Math.min(pred.ai_probability || 0, 100)}%` }}
                                         />
                                     </div>
@@ -120,7 +165,7 @@ export default function AnalysisHistory() {
                                     </div>
                                 )}
 
-                                {pred.segments && pred.segments.length > 0 && (
+                                {!isImage && pred.segments && pred.segments.length > 0 && (
                                     <details className="results-segments">
                                         <summary>
                                             View Segments ({pred.segments.length})
