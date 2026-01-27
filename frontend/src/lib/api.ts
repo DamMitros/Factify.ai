@@ -107,6 +107,8 @@ export interface AnalysisSummary {
   label: string;
   score: number;
   created_at: string;
+  type?: 'text' | 'image';
+  image_preview?: string;
 }
 
 export interface Post {
@@ -118,10 +120,13 @@ export interface Post {
   comments_count: number;
   created_at: string;
   analysis_id?: string;
+  analysis_type?: 'text' | 'image';
   analysis_data?: {
       label: string;
       score: number;
       text_preview: string;
+      type?: 'text' | 'image';
+      image_preview?: string;
   };
 }
 
@@ -136,10 +141,11 @@ export const socialApi = {
     return response.data;
   },
 
-  createPost: async (content: string, analysisId?: string) => {
+  createPost: async (content: string, analysisId?: string, analysisType: 'text' | 'image' = 'text') => {
     const response = await api.post<{ success: boolean; postId: string }>('/social/feed', {
       content,
-      analysis_id: analysisId
+      analysis_id: analysisId,
+      analysis_type: analysisType
     });
     return response.data;
   },

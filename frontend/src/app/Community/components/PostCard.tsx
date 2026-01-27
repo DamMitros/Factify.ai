@@ -168,21 +168,35 @@ export function PostCard({
                             <span className="text-xs text-gray-500 border-l border-white/10 pl-2">
                                 Confidence: <span className="text-gray-300 font-medium">{(post.analysis_data.score * 100).toFixed(0)}%</span>
                             </span>
+                            {post.analysis_data.type && (
+                                <span className="text-[10px] bg-white/5 text-gray-500 px-1.5 py-0.5 rounded border border-white/5 uppercase ml-1">
+                                    {post.analysis_data.type}
+                                </span>
+                            )}
                         </div>
                         <svg className="w-4 h-4 text-gray-600 group-hover:text-purple-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
                     </div>
                     
-                    <div className="relative">
-                        <p className={`text-sm text-gray-400 italic pl-4 border-l-2 border-purple-500/20 leading-relaxed ${isAnalysisExpanded ? '' : 'line-clamp-3'}`}>
-                            "{post.analysis_data.full_text || post.analysis_data.text_preview}"
-                        </p>
-
-                        {(post.analysis_data.full_text && post.analysis_data.full_text.length > 150) && (
-                            <button onClick={() => setIsAnalysisExpanded(!isAnalysisExpanded)} className="text-xs text-purple-400 hover:text-purple-300 mt-2 ml-4 font-medium flex items-center gap-1">
-                                {isAnalysisExpanded ? 'Show less' : 'Show more'}
-                                <svg className={`w-3 h-3 transition-transform ${isAnalysisExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
-                            </button>
+                    <div className="relative flex flex-col sm:flex-row gap-4">
+                        {post.analysis_data.type === 'image' && post.analysis_data.image_preview && (
+                            <div className="flex-shrink-0 w-full sm:w-24 h-24 rounded-lg overflow-hidden border border-white/10 shadow-lg">
+                                <a href={post.analysis_data.image_preview} target="_blank" rel="noopener noreferrer">
+                                    <img src={post.analysis_data.image_preview} alt="Analysis thumbnail" className="w-full h-full object-cover hover:scale-110 transition-transform duration-300" />
+                                </a>
+                            </div>
                         )}
+                        <div className="flex-1">
+                            <p className={`text-sm text-gray-400 italic pl-4 border-l-2 border-purple-500/20 leading-relaxed ${isAnalysisExpanded ? '' : 'line-clamp-3'}`}>
+                                "{post.analysis_data.full_text || post.analysis_data.text_preview}"
+                            </p>
+
+                            {(post.analysis_data.full_text && post.analysis_data.full_text.length > 150) && (
+                                <button onClick={() => setIsAnalysisExpanded(!isAnalysisExpanded)} className="text-xs text-purple-400 hover:text-purple-300 mt-2 ml-4 font-medium flex items-center gap-1">
+                                    {isAnalysisExpanded ? 'Show less' : 'Show more'}
+                                    <svg className={`w-3 h-3 transition-transform ${isAnalysisExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
