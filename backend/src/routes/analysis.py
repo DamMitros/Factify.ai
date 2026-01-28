@@ -80,7 +80,11 @@ def get_analysis(task_id):
         "success": True,
         "data": {
             "text": analysis_data.get("text"),
-            "result": analysis_data.get("result"),
+            "result": {
+                "ai_probability": analysis_data.get("ai_probability"),
+                "segments": analysis_data.get("segments"),
+                "overall": analysis_data.get("overall")
+            },
             "user_id": analysis_data.get("user_id")
         }
     })
