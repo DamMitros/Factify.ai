@@ -52,9 +52,9 @@ export default function UserMenu() {
                 <div className="UserDropdown">
                     {authenticated ? (
                         <>
-                            <Link href="/profile" className="UserDropdownItem" onClick={() => setIsOpen(false)}>
+                            {/* <Link href="/profile" className="UserDropdownItem" onClick={() => setIsOpen(false)}>
                                 Profil
-                            </Link>
+                            </Link> */}
                             { (keycloak?.hasRealmRole("admin")) && (
                                 <Link href="/admin" className="UserDropdownItem" onClick={() => setIsOpen(false)}>
                                     Admin Panel

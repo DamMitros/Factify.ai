@@ -1,6 +1,6 @@
 "use client";
 
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import { useKeycloak } from "../../auth/KeycloakProviderWrapper";
 import PhotoUpload from "./PhotoUpload";
 import PhotoAnalysisResult, { ImageDetectResult } from "./PhotoAnalysisResult";
@@ -12,6 +12,7 @@ export default function PhotoAnalyzer(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImageDetectResult | null>(null);
+  const [analyzedImageUrl, setAnalyzedImageUrl] = useState<string | null>(null);
 
   const { keycloak, authenticated } = useKeycloak();
 
@@ -47,6 +48,16 @@ export default function PhotoAnalyzer(): JSX.Element {
 
       const data = (await response.json()) as ImageDetectResult;
       setResult(data);
+
+      // Update preview image only after successful analysis
+      if (selectedFile) {
+        setAnalyzedImageUrl((prev) => {
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
+          return URL.createObjectURL(selectedFile);
+        });
+      }
     } catch (err: any) {
       console.error("Image analysis failed:", err);
       setError(err.message || "Failed to analyze image");
@@ -55,8 +66,17 @@ export default function PhotoAnalyzer(): JSX.Element {
     }
   };
 
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (analyzedImageUrl) {
+        URL.revokeObjectURL(analyzedImageUrl);
+      }
+    };
+  }, [analyzedImageUrl]);
+
   return (
-    <div className="text-analyzer-layout">
+    <div className="photo-analyzer-layout">
       <PhotoUpload
         selectedFile={selectedFile}
         onFileChange={setSelectedFile}
@@ -64,7 +84,7 @@ export default function PhotoAnalyzer(): JSX.Element {
         loading={loading}
         error={error}
       />
-      <PhotoAnalysisResult result={result} />
+      <PhotoAnalysisResult result={result} uploadedImageUrl={analyzedImageUrl} />
     </div>
   );
 }

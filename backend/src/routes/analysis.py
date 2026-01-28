@@ -6,6 +6,7 @@ from common.python.text_extractor import extract_text
 from common.python import db
 
 from bson.objectid import ObjectId
+from datetime import datetime
 
 analysis = Blueprint("analysis", __name__)
 
@@ -148,6 +149,42 @@ def get_manipulation_analysis(task_id):
             "user_id": analysis_data.get("user_id")
         }
     })
+
+
+@analysis.route("/manipulation/predictions/<user_id>", methods=["GET"])
+@require_auth
+def get_manipulation_predictions_by_user(user_id: str):
+    """Return history of manipulation analyses for given user."""
+    user_id = (user_id or "").strip()
+    if not user_id:
+        raise BadRequest("Missing user_id")
+
+    try:
+        database = db.get_database("factify_ai")
+        collection = database["analysis_manipulation"]
+
+        cursor = collection.find({"user_id": user_id}).sort("_id", -1)
+
+        results = []
+        for doc in cursor:
+            created_at = (
+                doc.get("timestamp")
+                or doc.get("created_at")
+                or getattr(doc.get("_id"), "generation_time", None)
+            )
+
+            results.append({
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "result": doc.get("result"),
+                "user_id": doc.get("user_id"),
+                "created_at": created_at,
+            })
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch manipulation analyses for user %s: %s", user_id, e)
+        raise InternalServerError("Failed to fetch manipulation analyses")
 
 
 @analysis.route("/find_sources", methods=["POST"])

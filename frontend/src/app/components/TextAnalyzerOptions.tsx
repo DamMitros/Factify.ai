@@ -19,11 +19,12 @@ const options = [
     },
 ];
 
-export default function TextAnalyzerOptions(): JSX.Element {
-    const handleClick = (id: number) => {
-        // TODO: hook up analyzer option action
-        console.debug("Selected option", id);
-    };
+interface TextAnalyzerOptionsProps {
+    activeId: number | null;
+    onSelect: (id: number) => void;
+}
+
+export default function TextAnalyzerOptions({ activeId, onSelect }: TextAnalyzerOptionsProps): JSX.Element {
 
     return (
         <div className="text-analyzer-options">
@@ -31,8 +32,8 @@ export default function TextAnalyzerOptions(): JSX.Element {
                 <div key={option.id} className="text-analyzer-option">
                     <button
                         type="button"
-                        className="text-analyzer-option-button"
-                        onClick={() => handleClick(option.id)}
+                        className={`text-analyzer-option-button${activeId === option.id ? " text-analyzer-option-button--active" : ""}`}
+                        onClick={() => onSelect(option.id)}
                     >
                         {option.label}
                     </button>

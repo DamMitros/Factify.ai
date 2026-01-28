@@ -16,9 +16,10 @@ export interface ImageDetectResult {
 
 interface PhotoAnalysisResultProps {
   result: ImageDetectResult | null;
+  uploadedImageUrl?: string | null;
 }
 
-export default function PhotoAnalysisResult({ result }: PhotoAnalysisResultProps): JSX.Element | null {
+export default function PhotoAnalysisResult({ result, uploadedImageUrl }: PhotoAnalysisResultProps): JSX.Element | null {
   if (!result) return null;
 
   const label = result.is_ai ? "AI-generated image" : "Real image";
@@ -44,21 +45,28 @@ export default function PhotoAnalysisResult({ result }: PhotoAnalysisResultProps
           <strong>Real probability:</strong> {realPercent}%
         </p>
 
-        {result.image_preview && (
+        {(uploadedImageUrl || result.image_preview) && (
           <div style={{ marginTop: 24 }}>
             <p className="text-analyzer-label">Analyzed image</p>
             <div
               style={{
                 borderRadius: 16,
-                overflow: "hidden",
                 border: "1px solid rgba(148, 163, 184, 0.4)",
-                maxHeight: 320,
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                maxWidth: "100%",
               }}
             >
               <img
-                src={result.image_preview}
+                src={uploadedImageUrl || result.image_preview}
                 alt={result.filename}
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                style={{
+                  display: "block",
+                  maxWidth: "100%",
+                  height: "auto",
+                  objectFit: "contain",
+                }}
               />
             </div>
           </div>

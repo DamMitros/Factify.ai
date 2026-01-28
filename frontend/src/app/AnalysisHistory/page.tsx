@@ -2,6 +2,7 @@ import React, { JSX } from "react";
 import TextAnalyzer from "../components/TextAnalyzer";
 import Bubbles from "../components/Bubbles";
 import AnalysisHistory from "../components/AnalysisHistory";
+import { BackButton } from "../components/BackButton";
 
 export const metadata = {
     title: "Analize Text",
@@ -10,6 +11,7 @@ export const metadata = {
 export default function Page(): JSX.Element {
     return (
         <>
+            <BackButton />
             <div className="opacity-100 blur-xl  fixed">
                 <Bubbles />
                 
