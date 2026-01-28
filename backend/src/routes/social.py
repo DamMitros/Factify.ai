@@ -16,10 +16,17 @@ def serialize_doc(doc):
 def get_my_analyses():
   user_id = g.user.get("sub")  
   db_instance = db.get_database("factify")
-  results = list(db_instance["analysis"].find({"user_id": user_id}).sort("created_at", -1).limit(20))
+  
+  # Fetch from text analysis
+  text_results = list(db_instance["analysis"].find({"user_id": user_id}).sort("created_at", -1).limit(20))
+  
+  # Fetch from image analysis
+  image_results = list(db_instance["image_analysis"].find({"user_id": user_id}).sort("timestamp", -1).limit(20))
 
   analyses = []
-  for doc in results:
+  
+  # Process text analyses
+  for doc in text_results:
     overall = doc.get("overall", {})
     label = overall.get("label") or doc.get("label") or doc.get("prediction") or "Unknown"
     score = overall.get("confidence") or overall.get("score") or doc.get("score") or doc.get("confidence") or 0
@@ -35,9 +42,36 @@ def get_my_analyses():
       "text_preview": text[:80] + "..." if text else "No text content",
       "label": label,
       "score": score,
+      "type": "text",
       "created_at": doc.get("timestamp") or doc.get("created_at")
     })
-  return jsonify(analyses)
+
+  # Process image analyses
+  for doc in image_results:
+    overall = doc.get("overall", {})
+    label = overall.get("label") or "Unknown"
+    score = overall.get("confidence") or doc.get("ai_probability", 0) / 100 or 0
+    filename = doc.get("filename") or "image"
+
+    try:
+      score = float(score)
+    except (ValueError, TypeError):
+      score = 0.0
+
+    analyses.append({
+      "id": str(doc["_id"]),
+      "text_preview": f"Image Analysis: {filename}",
+      "label": label,
+      "score": score,
+      "type": "image",
+      "image_preview": doc.get("image_preview"),
+      "created_at": doc.get("timestamp")
+    })
+
+  # Sort combined results by created_at descending
+  analyses.sort(key=lambda x: x["created_at"] if x["created_at"] else datetime.min, reverse=True)
+  
+  return jsonify(analyses[:20])
 
 
 @social_bp.route("/feed", methods=["POST"])
@@ -46,6 +80,7 @@ def share_prediction():
   data = request.get_json()
   content = data.get("content")
   analysis_id = data.get("analysis_id")
+  analysis_type = data.get("analysis_type", "text")
 
   if not content and not analysis_id:
     raise BadRequest("Post must contain content or analysis reference.")
@@ -55,6 +90,7 @@ def share_prediction():
     "username": g.user.get("preferred_username", "Unknown"),
     "content": content,
     "analysis_id": analysis_id,
+    "analysis_type": analysis_type,
     "likes": [],
     "comments_count": 0,
     "created_at": datetime.utcnow()
@@ -79,14 +115,29 @@ def get_feed():
     
     if post.get("analysis_id"):
       try:
-        analysis = db_instance["analysis"].find_one({"_id": ObjectId(post["analysis_id"])})
+        a_type = post.get("analysis_type", "text")
+        collection = "image_analysis" if a_type == "image" else "analysis"
+        analysis = db_instance[collection].find_one({"_id": ObjectId(post["analysis_id"])})
+
+        # Fallback if type was wrong
+        if not analysis:
+            alt_collection = "analysis" if a_type == "image" else "image_analysis"
+            analysis = db_instance[alt_collection].find_one({"_id": ObjectId(post["analysis_id"])})
+            if analysis:
+                a_type = "text" if alt_collection == "analysis" else "image"
 
         if analysis:
           overall = analysis.get("overall", {})
           
           label = overall.get("label") or analysis.get("label") or analysis.get("prediction") or "Unknown"
           score = overall.get("confidence") or overall.get("score") or analysis.get("score") or analysis.get("confidence") or 0
-          text = analysis.get("text") or analysis.get("content") or ""
+          
+          if a_type == "image":
+              text = f"Image: {analysis.get('filename', 'unnamed')}"
+              image_preview = analysis.get("image_preview")
+          else:
+              text = analysis.get("text") or analysis.get("content") or ""
+              image_preview = None
           
           try:
             score = float(score)
@@ -96,8 +147,10 @@ def get_feed():
           post["analysis_data"] = {
             "label": label,
             "score": score,
-            "text_preview": text[:150] + "..." if text else "",
-            "full_text": text
+            "text_preview": text[:150] + "..." if text and len(text) > 150 else text,
+            "full_text": text,
+            "type": a_type,
+            "image_preview": image_preview
           }
       except Exception as e:
         print(f"Error enriching post {post['_id']}: {e}")
