@@ -45,7 +45,7 @@ export default function CommunityPage() {
 
   const handleCreatePost = async (content: string) => {
     try {
-      await socialApi.createPost(content, selectedAnalysis?.id);
+      await socialApi.createPost(content, selectedAnalysis?.id, selectedAnalysis?.type || 'text');
       setSelectedAnalysis(null);
       await fetchFeed();
     } catch (error) {

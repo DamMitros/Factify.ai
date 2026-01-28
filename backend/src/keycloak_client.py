@@ -6,7 +6,7 @@ import functools
 from typing import Optional
 
 
-KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "http://keycloak:8080/")
+KEYCLOAK_SERVER_URL = os.getenv("KEYCLOAK_SERVER_URL", "https://keycloak:8443/")
 KEYCLOAK_REALM= os.getenv("KEYCLOAK_REALM", "factify.ai")
 KEYCLOAK_CLIENT_ID = os.getenv("KEYCLOAK_CLIENT_ID", "frontend")
 KEYCLOAK_ADMIN_USER = os.getenv("KEYCLOAK_ADMIN_USERNAME", "admin")
@@ -15,7 +15,8 @@ KEYCLOAK_ADMIN_PASSWORD = os.getenv("KEYCLOAK_ADMIN_PASSWORD", "admin")
 keycloak_openid = KeycloakOpenID(
     server_url = KEYCLOAK_SERVER_URL,
     client_id = KEYCLOAK_CLIENT_ID,
-    realm_name=KEYCLOAK_REALM
+    realm_name=KEYCLOAK_REALM,
+    verify=False
 )
 
 def get_keycloak_admin():
@@ -25,7 +26,7 @@ def get_keycloak_admin():
         password=KEYCLOAK_ADMIN_PASSWORD,
         realm_name=KEYCLOAK_REALM,
         user_realm_name='master',
-        verify=True
+        verify=False
     )
 
 _PUBLIC_KEY: Optional[str] = None
