@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useKeycloak } from '../../auth/KeycloakProviderWrapper';
 import { api } from '../../lib/api'
 import AnalysisHistory from '../components/AnalysisHistory';
+import { BackButton } from '../components/BackButton';
 
 interface UserProfile {
   username: string;
@@ -14,7 +14,6 @@ interface UserProfile {
 }
 
 export default function ProfilePage() {
-  const router = useRouter();
   const { keycloak, authenticated, initialized } = useKeycloak();
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -62,9 +61,9 @@ export default function ProfilePage() {
 
   return (
     <div>
-      
+      <BackButton />
+
       <h1>Hello {profile.username}</h1>
-      <button className="back-button" onClick={() => router.push('/')}> Retrun </button>
 
       <h1>Profil użytkownika</h1>
       <div>

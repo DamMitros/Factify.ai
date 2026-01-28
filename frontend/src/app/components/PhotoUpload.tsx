@@ -1,4 +1,4 @@
-import React, { JSX, ChangeEvent, useRef } from "react";
+import React, { JSX, ChangeEvent, DragEvent, useRef, useState } from "react";
 
 interface PhotoUploadProps {
   selectedFile: File | null;
@@ -16,6 +16,7 @@ export default function PhotoUpload({
   error,
 }: PhotoUploadProps): JSX.Element {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const handleFileInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] ?? null;
@@ -24,6 +25,37 @@ export default function PhotoUpload({
 
   const handleChooseFileClick = () => {
     fileInputRef.current?.click();
+  };
+
+  const handleDragOver = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isDragActive) {
+      setIsDragActive(true);
+    }
+  };
+
+  const handleDragLeave = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragActive(false);
+  };
+
+  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragActive(false);
+
+    const file = event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file) {
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return;
+    }
+
+    onFileChange(file);
   };
 
   const previewUrl = selectedFile ? URL.createObjectURL(selectedFile) : null;
@@ -41,42 +73,14 @@ export default function PhotoUpload({
         <label className="text-analyzer-label" htmlFor="image-input">
           Image to analyze
         </label>
-        <div className="photo-upload-row">
-          <button
-            type="button"
-            className="photo-upload-button"
-            onClick={handleChooseFileClick}
-            disabled={loading}
-          >
-            {/* <span className="photo-upload-icon" aria-hidden="true">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M16.5 6.75L9 14.25C8.31 14.94 7.19 14.94 6.5 14.25C5.81 13.56 5.81 12.44 6.5 11.75L13 5.25"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M11 18.75L14.25 18.75C17.1495 18.75 19.5 16.3995 19.5 13.5C19.5 10.6005 17.1495 8.25 14.25 8.25L7.5 8.25C4.60051 8.25 2.25 10.6005 2.25 13.5C2.25 16.3995 4.60051 18.75 7.5 18.75"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </span> */}
-            <span>Choose image</span>
-          </button>
-          <span className="photo-upload-filename">
-            {selectedFile ? selectedFile.name : "No file chosen"}
-          </span>
+        <div
+          className={`photo-upload-dropzone ${isDragActive ? "photo-upload-dropzone--active" : ""}`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={handleChooseFileClick}
+        >
+          <p className="photo-upload-dropzone-text">Drag or upload photo</p>
           <input
             id="image-input"
             ref={fileInputRef}
@@ -87,27 +91,21 @@ export default function PhotoUpload({
             disabled={loading}
           />
         </div>
-      </div>
-
-      {previewUrl && (
-        <div className="text-analyzer-field" aria-label="Image preview">
-          <p className="text-analyzer-label">Preview</p>
-          <div
-            style={{
-              borderRadius: 16,
-              overflow: "hidden",
-              border: "1px solid rgba(148, 163, 184, 0.4)",
-              maxHeight: 320,
-            }}
-          >
-            <img
-              src={previewUrl}
-              alt={selectedFile?.name || "Selected image"}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
+        {selectedFile && previewUrl && (
+          <div className="photo-upload-selected">
+            <div className="photo-upload-selected-thumb">
+              <img
+                src={previewUrl}
+                alt={selectedFile.name}
+              />
+            </div>
+            <div className="photo-upload-selected-meta">
+              <span className="photo-upload-selected-label">Selected:</span>
+              <span className="photo-upload-selected-name">{selectedFile.name}</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {error && <div className="text-analyzer-error">Error: {error}</div>}
 

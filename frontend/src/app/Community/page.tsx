@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import keycloak from '../../auth/keycloak';
 import { socialApi, Post, AnalysisSummary } from '@/lib/api';
 import Bubbles from '../components/Bubbles';
@@ -9,9 +8,9 @@ import { AnalysisPickerModal } from './components/AnalysisPickerModal';
 import { PostCard } from './components/PostCard';
 import { CreatePostForm } from './components/CreatePostForm';
 import GlassEffect from '../components/GlassEffect';
+import { BackButton } from '../components/BackButton';
 
 export default function CommunityPage() {
-  const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string>('Guest');
   const [userId, setUserId] = useState<string | undefined>(undefined);
@@ -77,7 +76,7 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden flex flex-col">
-       <div className="blur-xl"><Bubbles /> </div>
+       <div className="blur-xl fixed"><Bubbles /> </div>
        <AnalysisPickerModal 
             isOpen={isModalOpen} 
             onClose={() => setIsModalOpen(false)} 
@@ -87,16 +86,11 @@ export default function CommunityPage() {
             }}
        />
        
+        <BackButton />
+
       <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 flex flex-col gap-8">
         
         <div className="relative flex flex-col items-center justify-center mb-4">
-            <button onClick={() => router.push("/")} className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-gray-400 hover:text-white transition-colors group px-4 py-2 rounded-lg hover:bg-white/5">
-                <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                </svg>
-                <span className="hidden sm:inline">Back</span>
-            </button>
-
             <div className="text-center">
                 <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Factify Community</h1>
                 <p className="text-gray-400 text-sm max-w-lg mx-auto leading-relaxed">Join the discussion about AI content detection. Share results and verify information.</p>
