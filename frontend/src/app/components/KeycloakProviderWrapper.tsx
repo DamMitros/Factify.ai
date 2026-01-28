@@ -1,20 +1,20 @@
-'use client';
+// 'use client';
 
-import { ReactNode } from 'react';
-import { ReactKeycloakProvider } from '@react-keycloak/web';
-import keycloak from '../keycloak';
+// import { ReactNode } from 'react';
+// import { ReactKeycloakProvider } from '@react-keycloak/web';
+// import keycloak from '../keycloak';
 
-export default function KeycloakProviderWrapper({ children }) {
-  return (
-    <ReactKeycloakProvider
-      authClient={keycloak}
-      initOptions={{
-        onLoad: 'check-sso',
-        pkceMethod: 'S256',
-        checkLoginIframe: false,
-      }}
-    >
-      {children}
-    </ReactKeycloakProvider>
-  );
-}
+// export default function KeycloakProviderWrapper({ children }) {
+//   return (
+//     <ReactKeycloakProvider
+//       authClient={keycloak}
+//       initOptions={{
+//         onLoad: 'check-sso',
+//         pkceMethod: 'S256',
+//         checkLoginIframe: false,
+//       }}
+//     >
+//       {children}
+//     </ReactKeycloakProvider>
+//   );
+// }
