@@ -31,7 +31,7 @@ export default function Bubbles() {
               </filter>
             </defs>
           </svg>
-            <div className="bubbles">
+            <div className="bubbles blur-xl ">
                 <div className="bubble bubble1"></div>
                 <div className="bubble bubble2"></div>
                 <div className="bubble bubble3"></div>  
