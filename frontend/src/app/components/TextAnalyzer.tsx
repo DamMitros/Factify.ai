@@ -2,6 +2,7 @@
 
 import React, { JSX, useState } from "react";
 import TextAnalyzerOptions from "./TextAnalyzerOptions";
+import TextAnalyzerResults from "./TextAnalyzerResults";
 import { api } from "../../lib/api";
 import { useKeycloak } from "../../auth/KeycloakProviderWrapper";
 
@@ -42,8 +43,8 @@ export default function TextAnalyzer(): JSX.Element {
     };
 
     return (
-        <>
-            <section className="text-analyzer">
+        <div className="text-analyzer-layout">
+            <section className="text-analyzer text-analyzer-input">
                 <header className="text-analyzer-header">
                     <h1 className="text-analyzer-title">Analyze Text</h1>
                     <p className="text-analyzer-subtitle">
@@ -71,33 +72,6 @@ export default function TextAnalyzer(): JSX.Element {
                     </div>
                 )}
 
-                {result && (
-                    <div className="text-analyzer-results">
-                        <h3>Analysis Results:</h3>
-                        <p><strong>AI Probability:</strong> {result.ai_probability}%</p>
-                        <p><strong>Human Probability:</strong> {result.human_probability}%</p>
-                        
-                        {result.segments && (
-                            <details className="results-segments">
-                                <summary>
-                                    View Segments ({result.segments.length})
-                                </summary>
-                                <div className="segments-list">
-                                    {result.segments.map((seg: any, idx: number) => (
-                                        <div key={idx} className="segment-item">
-                                            <p className="segment-title">Segment {seg.index + 1}:</p>
-                                            <p className="segment-probabilities">
-                                                AI: {(seg.prob_generated * 100).toFixed(2)}% | Human: {(seg.prob_human * 100).toFixed(2)}%
-                                            </p>
-                                            <p className="segment-preview">{seg.text.substring(0, 100)}...</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </details>
-                        )}
-                    </div>
-                )}
-
                 <div className="text-analyzer-actions">
                     <button 
                         type="button" 
@@ -108,9 +82,11 @@ export default function TextAnalyzer(): JSX.Element {
                         {loading ? "Analyzing..." : "Analyze Text"}
                     </button>
                 </div>
+
+                <TextAnalyzerOptions />
             </section>
 
-            <TextAnalyzerOptions />
-        </>
+            <TextAnalyzerResults result={result} />
+        </div>
     );
 }
