@@ -66,15 +66,14 @@ export default function ProfilePage() {
       <h1>Hello {profile.username}</h1>
       <button className="back-button" onClick={() => router.push('/')}> Retrun </button>
 
-      {/* <h1>Profil użytkownika</h1>
+      <h1>Profil użytkownika</h1>
       <div>
         <p><strong>Nazwa użytkownika:</strong> {profile.username}</p>
         <p><strong>Imię:</strong> {profile.name}</p>
         <p><strong>Email:</strong> {profile.email}</p>
         <p><strong>Role:</strong> {profile.roles.join(', ')}</p>
-      </div> */}
+      </div>
       
-      <AnalysisHistory/>
 
     
     </div>
