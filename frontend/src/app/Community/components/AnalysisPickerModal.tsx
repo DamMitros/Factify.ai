@@ -76,14 +76,24 @@ export function AnalysisPickerModal({
                                                     Confidence: <span className="text-white font-semibold">{(analysis.score * 100).toFixed(0)}%</span>
                                                 </span>
                                             )}
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-400 border border-white/10 uppercase tracking-tighter">
+                                                {analysis.type || 'text'}
+                                            </span>
                                         </div>
                                         <span className="text-xs text-gray-500 font-mono bg-black/20 px-2 py-1 rounded">
                                             {analysis.created_at ? new Date(analysis.created_at).toLocaleDateString() : ''}
                                         </span>
                                     </div>
-                                    <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed relative z-10 font-light pl-1 border-l-2 border-white/10 group-hover:border-purple-500/50 transition-colors">
-                                        "{analysis.text_preview}"
-                                    </p>
+                                    <div className="flex gap-4 relative z-10">
+                                        {analysis.type === 'image' && analysis.image_preview && (
+                                            <div className="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+                                                <img src={analysis.image_preview} alt="preview" className="w-full h-full object-cover" />
+                                            </div>
+                                        )}
+                                        <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed font-light pl-1 border-l-2 border-white/10 group-hover:border-purple-500/50 transition-colors flex-1">
+                                            "{analysis.text_preview}"
+                                        </p>
+                                    </div>
                                     
                                     <div className="absolute inset-0 bg-gradient-to-r from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                                 </button>
