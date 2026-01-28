@@ -14,7 +14,9 @@ def task(payload: TaskPayload, ctx: TaskContext):
     collection = database["analysis"]
     doc = {
         "text": text,
-        "ai_probability": ai_prob_pct,
+        "result": {
+            "ai_probability": ai_prob_pct
+        },
         "user_id": user_id
     }
     result = collection.insert_one(doc)

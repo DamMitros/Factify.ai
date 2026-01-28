@@ -30,6 +30,8 @@ def dropout_train_mode(model: torch.nn.Module) -> Iterator[None]:
 def get_device() -> torch.device:
     if torch.cuda.is_available():
         return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
     return torch.device("cpu")
 
 def load_model_artifacts(

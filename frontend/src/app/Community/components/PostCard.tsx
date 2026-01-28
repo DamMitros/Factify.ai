@@ -118,7 +118,7 @@ export function PostCard({
     };
 
     return (
-        <GlassEffect className="p-6 rounded-2xl hover:bg-white/[0.07] transition-all duration-300 border border-white/5">
+        <GlassEffect className="p-6 rounded-2xl transition-all duration-300 border border-white/5 hover:bg-slate-900/30">
             <div className="flex justify-between items-start mb-4">
                 <div className="flex flex-col">
                     <span className="font-bold text-white text-lg tracking-wide">{post.username}</span>
