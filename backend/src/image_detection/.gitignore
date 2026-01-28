@@ -6,8 +6,7 @@ artifacts/models/*.pt
 data/ai/
 data/real/
 
-# Raporty
-artifacts/reports/*.json
+
 artifacts/reports/*.txt
 
 # Cache
