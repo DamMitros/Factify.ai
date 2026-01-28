@@ -69,11 +69,6 @@ torch==2.2.0
 torchvision==0.17.0
 tqdm==4.67.1
 transformers==4.39.0
-python-keycloak==3.7.0
-python-jose==3.3.0
-Flask_Cors==3.0.10
-pypdf==3.1.0
-python-docx==0.8.11
 typing-inspection==0.4.2
 typing_extensions==4.15.0
 tzdata==2025.2
