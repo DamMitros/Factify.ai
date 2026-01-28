@@ -11,13 +11,9 @@ const options = [
         label: "Manipulation",
         description: "Spot persuasive or emotionally charged wording patterns.",
     },
+
     {
         id: 3,
-        label: "Fact checking",
-        description: "Cross-check statements against trusted knowledge sources.",
-    },
-    {
-        id: 4,
         label: "Find source",
         description: "Locate the original publication or author of the text.",
     },

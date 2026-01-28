@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from context import TaskContext
 from types_ import TaskPayload
 from .nlp.detector.model_utils import load_model_artifacts
@@ -8,14 +10,18 @@ def task(payload: TaskPayload, ctx: TaskContext):
     text = payload["text"]
     user_id = payload["user_id"]
 
-    response, ai_prob_pct = helper_to_predict(text, {})
+    response, ai_prob_pct = helper_to_predict(text)
 
     database = ctx.db.get_database("factify_ai")
     collection = database["analysis"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_pct,
-        "user_id": user_id
+        "user_id": user_id,
+        "timestamp": datetime.utcnow(),
+        "segments": response.get("segments") if response else None,
+        "overall": response.get("overall") if response else None,
+        "action": "text_analysis"
     }
     result = collection.insert_one(doc)
 

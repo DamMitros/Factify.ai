@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 
 const GlassEffect = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
-  <div className={`backdrop-blur-md bg-white/5 border border-white/10 shadow-xl ${className}`}>
+  <div className={`backdrop-blur-md bg-black/20 border border-white/10 shadow-xl ${className}`}>
     {children}
   </div>
 );
