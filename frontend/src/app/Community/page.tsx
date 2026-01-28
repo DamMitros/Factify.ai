@@ -77,7 +77,7 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden flex flex-col">
-       <Bubbles /> 
+       <div className="blur-xl"><Bubbles /> </div>
        <AnalysisPickerModal 
             isOpen={isModalOpen} 
             onClose={() => setIsModalOpen(false)} 

@@ -7,7 +7,7 @@ import LoginButton from "./components/LoginButton";
 export default function LandingPage() {
   return (
     <>
-       <div className="landingMainBackground">
+       <div className="landingMainBackground ">
          <InteractiveBubble />
          <Bubbles />
 

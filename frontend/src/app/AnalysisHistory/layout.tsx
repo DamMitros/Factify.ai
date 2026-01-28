@@ -1,4 +1,3 @@
-
 import React from "react";
 
 type LayoutProps = {
@@ -7,7 +6,7 @@ type LayoutProps = {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
     return (
-        <div className="analize-photos-layout" style={{ minHeight: "100vh" }}>
+        <div className="analysis-history-layout" style={{ minHeight: "100vh" }}>
             {children}
         </div>
     );
