@@ -58,16 +58,7 @@ class ImageDetector:
         return model
     
     def predict(self, image):
-        """
-        Przewiduj czy obraz jest AI-generated czy rzeczywisty.
-        
-        Args:
-            image: PIL.Image lub ścieżka do obrazu
-            
-        Returns:
-            dict: {'ai': float, 'real': float} - prawdopodobieństwa
-        """
-        # Obsłuż zarówno ścieżkę jak i PIL.Image
+       
         if isinstance(image, (str, Path)):
             image_path = Path(image)
             if not image_path.exists():

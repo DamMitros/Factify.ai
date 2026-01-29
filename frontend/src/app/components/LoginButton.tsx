@@ -12,6 +12,6 @@ export default function LoginButton() {
   const login = () => keycloak?.login()
 
   return (
-    <button onClick={login}>Zaloguj</button>
+    <button onClick={login}>Log in</button>
   )
 }
