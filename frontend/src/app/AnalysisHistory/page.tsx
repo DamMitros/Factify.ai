@@ -12,7 +12,7 @@ export default function Page(): JSX.Element {
     return (
         <>
             <BackButton />
-            <div className="opacity-100 blur-xl  fixed">
+            <div className="opacity-70 blur-xl  fixed">
                 <Bubbles />
                 
             </div>
