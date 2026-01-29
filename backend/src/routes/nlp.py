@@ -7,7 +7,7 @@ from nlp import predict_proba, predict_segmented_text
 from nlp.detector.config import SEGMENT_MIN_WORDS, SEGMENT_STRIDE_WORDS, SEGMENT_WORD_TARGET
 from common.python import db
 from common.python.text_extractor import extract_text
-from keycloak_client import require_auth_optional
+from keycloak_client import require_auth, require_auth_optional
 
 nlp_bp = Blueprint("nlp", __name__)
 
@@ -183,11 +183,12 @@ def predict_file_endpoint():
 
   return jsonify(response)
 
-@nlp_bp.route("/predictions/<user_id>", methods=["GET"])
-def get_predictions_by_user(user_id: str):
-    user_id = (user_id or "").strip()
+@nlp_bp.route("/predictions", methods=["GET"])
+@require_auth
+def get_predictions():
+    user_id = g.user.get("sub")
     if not user_id:
-        raise BadRequest("Missing user_id")
+        raise BadRequest("User not authenticated")
 
     try:
         database = db.get_database("factify")
