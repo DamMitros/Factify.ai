@@ -52,13 +52,13 @@ export default function AnalysisHistory() {
             try {
                 let endpoint: string;
                 if (activeTab === 'text') {
-                    endpoint = `/analysis/ai/predictions/${userId}`;
+                    endpoint = `/analysis/ai/predictions`;
                 } else if (activeTab === 'image') {
-                    endpoint = `/image/predictions/${userId}`;
+                    endpoint = `/image/predictions`;
                 } else if (activeTab === 'manipulation') {
-                    endpoint = `/analysis/manipulation/predictions/${userId}`;
+                    endpoint = `/analysis/manipulation/predictions`;
                 } else {
-                    endpoint = `/analysis/find_sources/predictions/${userId}`;
+                    endpoint = `/analysis/find_sources/predictions`;
                 }
 
                 const { data } = await api.get(endpoint, {

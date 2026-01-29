@@ -89,13 +89,13 @@ def get_analysis(task_id):
     })
 
 
-@analysis.route("/ai/predictions/<user_id>", methods=["GET"])
+@analysis.route("/ai/predictions", methods=["GET"])
 @require_auth
-def get_ai_predictions_by_user(user_id: str):
+def get_ai_predictions():
     """Return history of AI detection analyses for given user."""
-    user_id = (user_id or "").strip()
+    user_id = g.user.get("sub")
     if not user_id:
-        raise BadRequest("Missing user_id")
+        raise BadRequest("User not authenticated")
 
     try:
         database = db.get_database("factify_ai")
@@ -201,13 +201,13 @@ def get_manipulation_analysis(task_id):
     })
 
 
-@analysis.route("/manipulation/predictions/<user_id>", methods=["GET"])
+@analysis.route("/manipulation/predictions", methods=["GET"])
 @require_auth
-def get_manipulation_predictions_by_user(user_id: str):
+def get_manipulation_predictions():
     """Return history of manipulation analyses for given user."""
-    user_id = (user_id or "").strip()
+    user_id = g.user.get("sub")
     if not user_id:
-        raise BadRequest("Missing user_id")
+        raise BadRequest("User not authenticated")
 
     try:
         database = db.get_database("factify_ai")
@@ -238,13 +238,13 @@ def get_manipulation_predictions_by_user(user_id: str):
         raise InternalServerError("Failed to fetch manipulation analyses")
 
 
-@analysis.route("/find_sources/predictions/<user_id>", methods=["GET"])
+@analysis.route("/find_sources/predictions", methods=["GET"])
 @require_auth
-def get_find_sources_predictions_by_user(user_id: str):
+def get_find_sources_predictions():
     """Return history of find_sources analyses for given user."""
-    user_id = (user_id or "").strip()
+    user_id = g.user.get("sub")
     if not user_id:
-        raise BadRequest("Missing user_id")
+        raise BadRequest("User not authenticated")
 
     try:
         database = db.get_database("factify_ai")
