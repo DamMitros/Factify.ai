@@ -2,12 +2,49 @@
 
 ## Table of Contents
 
+- [Instrukcja uruchomienia projektu](#instrukcja-uruchomienia-projektu)
 - [Rozkład plików](#rozkład-plików)
 - [Konfiguracja (.env)](#konfiguracja-env)
 - [Uruchamianie i czyszczenie](#uruchamianie-i-czyszczenie)
 - [Serwisy](#serwisy)
 - [Nawigacja po bazie kodu](#nawigacja-po-bazie-kodu)
 - [Zasady prowadzenia repozytorium](#zasady-prowadzenia-repozytorium)
+
+## Instrukcja uruchomienia projektu
+
+1. Należy pobrać całe repozytorium projektu.
+
+2. Następnie należy pobrać dwa modele dostępne w sekcji **Releases**:
+   - **AI vs Real Image Classifier Improved**  
+     Model należy umieścić w katalogu:  
+     `backend/src/image_detection/artifacts/models`
+   - **roberta_finetuned_v2 (Enhanced Context & Humanized Data)**  
+     Po rozpakowaniu model należy umieścić w katalogu:  
+     `backend/src/nlp/artifacts/models`
+
+3. **Konfiguracja środowiska**
+
+   W repozytorium plik konfiguracyjny środowiska znajduje się pod nazwą `.env.dist`.  
+   Aby poprawnie uruchomić aplikację, należy zmienić jego nazwę na `.env`.
+
+   Plik `.env` nie zawiera klucza API do usługi **Gemini**.  
+   W związku z tym funkcjonalności związane z:
+   - manipulacją tekstu,
+   - analizą źródeł  
+   nie będą działały bez samodzielnego uzupełnienia odpowiedniego klucza API.
+
+4. Po poprawnym umieszczeniu modeli oraz konfiguracji środowiska,  
+   w głównym katalogu projektu należy uruchomić polecenie:
+
+   ```bash
+   docker-compose up
+   ```
+
+5. Po zakończeniu procesu aplikacja będzie dostępna pod adresem:  
+   http://localhost:3000
+
+**Uwagi:**  
+Projekt wymaga zainstalowanego środowiska **Docker**.
 
 ## Rozkład plików
 
