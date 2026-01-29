@@ -6,7 +6,7 @@ from pathlib import Path
 
 def create_model(num_classes=2, pretrained=True):
     """
-    Utwórz model MobileNetV2 dla klasyfikacji AI vs Real.
+    Utwórz model EfficientNet-B0 dla klasyfikacji AI vs Real.
     
     Args:
         num_classes: Liczba klas (domyślnie 2: ai_generated, real)
@@ -16,19 +16,19 @@ def create_model(num_classes=2, pretrained=True):
         model: Skonfigurowany model PyTorch
     """
     if pretrained:
-        weights = models.MobileNet_V2_Weights.DEFAULT
-        model = models.mobilenet_v2(weights=weights)
+        weights = models.EfficientNet_B0_Weights.DEFAULT
+        model = models.efficientnet_b0(weights=weights)
     else:
-        model = models.mobilenet_v2(weights=None)
+        model = models.efficientnet_b0(weights=None)
     
     # Zamroź backbone (odmrożymy później podczas treningu)
     for param in model.features.parameters():
         param.requires_grad = False
     
-    # Zamień klasyfikator
+    # Zamień klasyfikator (w EfficientNet-B0 to model.classifier)
     num_features = model.classifier[1].in_features
     model.classifier = nn.Sequential(
-        nn.Dropout(0.2),
+        nn.Dropout(p=0.2, inplace=True),
         nn.Linear(num_features, num_classes)
     )
     
