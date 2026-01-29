@@ -7,7 +7,7 @@ from datetime import datetime
 
 from image_detection.detector import ImageDetector
 from common.python import db
-from keycloak_client import require_auth_optional
+from keycloak_client import require_auth, require_auth_optional
 
 image_bp = Blueprint("image", __name__)
 
@@ -126,12 +126,13 @@ def detect_ai_image():
         raise InternalServerError(f"Błąd podczas analizy obrazu: {str(e)}")
 
 
-@image_bp.route("/predictions/<user_id>", methods=["GET"])
-def get_image_predictions_by_user(user_id: str):
+@image_bp.route("/predictions", methods=["GET"])
+@require_auth
+def get_image_predictions():
     """Pobiera historię analiz obrazów użytkownika (mirror nlp.py logic)."""
-    user_id = (user_id or "").strip()
+    user_id = g.user.get("sub")
     if not user_id:
-        raise BadRequest("Missing user_id")
+        raise BadRequest("User not authenticated")
 
     try:
         database = db.get_database("factify")

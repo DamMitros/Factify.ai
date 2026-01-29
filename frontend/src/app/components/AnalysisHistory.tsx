@@ -2,6 +2,7 @@
 import { useKeycloak } from '../../auth/KeycloakProviderWrapper';
 import { useEffect, useState } from 'react';
 import { api } from '../../lib/api';
+import AuthModal from './AuthModal';
 
 const formatDate = (dateString: string | Date | undefined) => {
     if (!dateString) return '';
@@ -30,7 +31,17 @@ export default function AnalysisHistory() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [expandedItems, setExpandedItems] = useState<Set<string | number>>(new Set());
-    const [activeTab, setActiveTab] = useState<'text' | 'image'>('text');
+    const [activeTab, setActiveTab] = useState<'text' | 'image' | 'manipulation' | 'find_sources'>('text');
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+    const handleApiError = (err: any, defaultMessage: string) => {
+        if (err.message?.includes("401")) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+        console.error(defaultMessage, err);
+        setError(err.message || defaultMessage);
+    };
 
     useEffect(() => {
         if (!userId) return;
@@ -39,9 +50,16 @@ export default function AnalysisHistory() {
             setLoading(true);
             setError(null);
             try {
-                const endpoint = activeTab === 'text'
-                    ? `/nlp/predictions/${userId}`
-                    : `/image/predictions/${userId}`;
+                let endpoint: string;
+                if (activeTab === 'text') {
+                    endpoint = `/analysis/ai/predictions`;
+                } else if (activeTab === 'image') {
+                    endpoint = `/image/predictions`;
+                } else if (activeTab === 'manipulation') {
+                    endpoint = `/analysis/manipulation/predictions`;
+                } else {
+                    endpoint = `/analysis/find_sources/predictions`;
+                }
 
                 const { data } = await api.get(endpoint, {
                     requireAuth: true
@@ -49,8 +67,7 @@ export default function AnalysisHistory() {
                 console.log(`${activeTab} Predictions data:`, data);
                 setPredictions(Array.isArray(data) ? data : []);
             } catch (err: any) {
-                console.error(`Failed to fetch ${activeTab} predictions:`, err);
-                setError(err.message || `Failed to fetch ${activeTab} predictions`);
+                handleApiError(err, `Failed to fetch ${activeTab} predictions:`);
             } finally {
                 setLoading(false);
             }
@@ -71,6 +88,12 @@ export default function AnalysisHistory() {
         });
     };
 
+    const handleTabChange = (tab: 'text' | 'image' | 'manipulation' | 'find_sources') => {
+        setActiveTab(tab);
+        setPredictions([]);
+        setLoading(true);
+    };
+
     return (
         <div className="analysis-history">
             <div className="history-header">
@@ -78,15 +101,27 @@ export default function AnalysisHistory() {
                 <div className="history-tabs">
                     <button
                         className={`history-tab ${activeTab === 'text' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('text')}
+                        onClick={() => handleTabChange('text')}
                     >
                         Text Analysis
                     </button>
                     <button
                         className={`history-tab ${activeTab === 'image' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('image')}
+                        onClick={() => handleTabChange('image')}
                     >
                         Photo Analysis
+                    </button>
+                    <button
+                        className={`history-tab ${activeTab === 'manipulation' ? 'active' : ''}`}
+                        onClick={() => handleTabChange('manipulation')}
+                    >
+                        Manipulation Analysis
+                    </button>
+                    <button
+                        className={`history-tab ${activeTab === 'find_sources' ? 'active' : ''}`}
+                        onClick={() => handleTabChange('find_sources')}
+                    >
+                        Source Analysis
                     </button>
                 </div>
             </div>
@@ -106,8 +141,18 @@ export default function AnalysisHistory() {
                         const isExpanded = expandedItems.has(itemId);
 
                         const isImage = activeTab === 'image' || pred.type === 'image';
+                        const isManipulation = activeTab === 'manipulation' && (pred.type === 'manipulation' || (!Array.isArray(pred.result) && pred.result && Object.keys(pred.result).length > 0 && typeof Object.values(pred.result)[0] === 'object'));
+                        const isFindSources = activeTab === 'find_sources' && (pred.type === 'find_sources' || Array.isArray(pred.result));
                         const shouldShowMore = !isImage && pred.text && pred.text.length > 100;
                         const displayText = !isImage ? (isExpanded ? pred.text : truncateText(pred.text)) : null;
+                        
+                        const manipulationEntries = isManipulation && pred.result && !Array.isArray(pred.result)
+                            ? Object.entries(pred.result as Record<string, Record<string, string[]>>)
+                            : [];
+                        
+                        const findSourcesEntries = isFindSources && Array.isArray(pred.result)
+                            ? pred.result
+                            : [];
 
                         return (
                             <li key={itemId} className="prediction-item">
@@ -147,37 +192,108 @@ export default function AnalysisHistory() {
                                     </>
                                 )}
 
-                                <div className="prediction-probability">
-                                    <span className="prediction-probability-label">AI Probability:</span>
-                                    <div className="probability-bar">
-                                        <div
-                                            className="probability-bar-fill"
-                                            style={{ width: `${Math.min(pred.ai_probability || 0, 100)}%` }}
-                                        />
+                                {!isManipulation && !isFindSources && (
+                                    <div className="prediction-probability">
+                                        <span className="prediction-probability-label">AI Probability:</span>
+                                        <div className="probability-bar">
+                                            <div
+                                                className="probability-bar-fill"
+                                                style={{ width: `${Math.min(pred.ai_probability || 0, 100)}%` }}
+                                            />
+                                        </div>
+                                        <span className="probability-value">{pred.ai_probability || 0}%</span>
                                     </div>
-                                    <span className="probability-value">{pred.ai_probability || 0}%</span>
-                                </div>
+                                )}
 
-                                {pred.overall?.confidence !== null && pred.overall?.confidence !== undefined && (
+                                {!isManipulation && !isFindSources && pred.overall?.confidence !== null && pred.overall?.confidence !== undefined && (
                                     <div className="prediction-confidence">
                                         <span className="prediction-confidence-label">Model Confidence:</span>
                                         <span className="prediction-confidence-value">{(pred.overall.confidence * 100).toFixed(2)}%</span>
                                     </div>
                                 )}
 
-                                {!isImage && pred.segments && pred.segments.length > 0 && (
+                                {!isImage && !isManipulation && !isFindSources && pred.segments && pred.segments.length > 0 && (
                                     <details className="results-segments">
                                         <summary>
                                             View Segments ({pred.segments.length})
                                         </summary>
                                         <div className="segments-list">
-                                            {pred.segments.map((seg: any, idx: number) => (
-                                                <div key={idx} className="segment-item">
-                                                    <p className="segment-title">Segment {seg.index + 1}:</p>
-                                                    <p className="segment-probabilities">
-                                                        AI: {(seg.prob_generated * 100).toFixed(2)}% | Human: {(seg.prob_human * 100).toFixed(2)}% | Confidence: {seg.confidence !== null && seg.confidence !== undefined ? (seg.confidence * 100).toFixed(2) : 'N/A'}%
-                                                    </p>
-                                                    <p className="segment-preview">{seg.text}</p>
+                                            {pred.segments.map((seg: any, idx: number) => {
+                                                const isAiSegment = seg.prob_generated >= 0.8;
+                                                return (
+                                                    <div
+                                                        key={idx}
+                                                        className={isAiSegment ? "segment-item segment-item-ai" : "segment-item"}
+                                                    >
+                                                        <p className="segment-title">Segment {seg.index + 1}:</p>
+                                                        <p className="segment-probabilities">
+                                                            AI: {(seg.prob_generated * 100).toFixed(2)}% | Human: {(seg.prob_human * 100).toFixed(2)}% | Confidence: {seg.confidence !== null && seg.confidence !== undefined ? (seg.confidence * 100).toFixed(2) : 'N/A'}%
+                                                        </p>
+                                                        <p className="segment-preview">{seg.text}</p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </details>
+                                )}
+
+                                {isManipulation && manipulationEntries.length > 0 && (
+                                    <details className="manipulation-details">
+                                        <summary className="manipulation-details-summary">
+                                            Show manipulation details
+                                        </summary>
+
+                                        <div className="manipulation-history-details">
+                                            {manipulationEntries.map(([category, fragments]) => {
+                                                const fragmentEntries = Object.entries(fragments || {});
+
+                                                return (
+                                                    <div key={category} className="manipulation-category">
+                                                        <h4 className="manipulation-category-title">{category}</h4>
+                                                        {fragmentEntries.map(([fragment, reasons], idx) => (
+                                                            <div key={fragment} className="manipulation-fragment">
+                                                                <p className="manipulation-fragment-index">Fragment {idx + 1}</p>
+                                                                <p className="manipulation-fragment-text">“{fragment}”</p>
+                                                                <ul className="manipulation-reasons">
+                                                                    {Array.isArray(reasons) && reasons.map((reason, reasonIdx) => (
+                                                                        <li key={reasonIdx}>{reason}</li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </details>
+                                )}
+
+                                {isFindSources && findSourcesEntries.length > 0 && (
+                                    <details className="manipulation-details">
+                                        <summary className="manipulation-details-summary">
+                                            Show source details
+                                        </summary>
+
+                                        <div className="manipulation-history-details">
+                                            {findSourcesEntries.map((item: any, idx: number) => (
+                                                <div key={idx} className="manipulation-category">
+                                                    <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                        <h4 className="manipulation-category-title">{item.category}</h4>
+                                                        <span style={{ fontWeight: "bold" }}>{item.status}</span>
+                                                    </div>
+                                                    <p className="manipulation-fragment-text" style={{ marginTop: "0.5rem" }}>“{item.citation}”</p>
+                                                    <p className="manipulation-category-description" style={{ fontStyle: "italic" }}>{item.analysis}</p>
+                                                    {item.sources?.length > 0 && (
+                                                        <ul className="manipulation-reasons">
+                                                            {item.sources.map((source: string, sIdx: number) => (
+                                                                <li key={sIdx}>
+                                                                    <a href={source} target="_blank" rel="noopener noreferrer" style={{ wordBreak: "break-all" }}>
+                                                                        {source}
+                                                                    </a>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -188,6 +304,10 @@ export default function AnalysisHistory() {
                     })}
                 </ul>
             )}
+            <AuthModal 
+                isOpen={isAuthModalOpen} 
+                onClose={() => setIsAuthModalOpen(false)} 
+            />
         </div>
     );
 }

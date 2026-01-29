@@ -1,9 +1,10 @@
 "use client";
 
-import React, { JSX, useState } from "react";
+import React, { JSX, useEffect, useState } from "react";
 import { useKeycloak } from "../../auth/KeycloakProviderWrapper";
 import PhotoUpload from "./PhotoUpload";
 import PhotoAnalysisResult, { ImageDetectResult } from "./PhotoAnalysisResult";
+import AuthModal from "./AuthModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
@@ -12,8 +13,19 @@ export default function PhotoAnalyzer(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImageDetectResult | null>(null);
+  const [analyzedImageUrl, setAnalyzedImageUrl] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const { keycloak, authenticated } = useKeycloak();
+
+  const handleApiError = (err: any, defaultMessage: string) => {
+    if (err.message?.includes("401")) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    console.error(defaultMessage, err);
+    setError(err.message || defaultMessage);
+  };
 
   const handleAnalyze = async () => {
     if (!selectedFile) {
@@ -47,16 +59,34 @@ export default function PhotoAnalyzer(): JSX.Element {
 
       const data = (await response.json()) as ImageDetectResult;
       setResult(data);
+
+      // Update preview image only after successful analysis
+      if (selectedFile) {
+        setAnalyzedImageUrl((prev) => {
+          if (prev) {
+            URL.revokeObjectURL(prev);
+          }
+          return URL.createObjectURL(selectedFile);
+        });
+      }
     } catch (err: any) {
-      console.error("Image analysis failed:", err);
-      setError(err.message || "Failed to analyze image");
+      handleApiError(err, "Image analysis failed:");
     } finally {
       setLoading(false);
     }
   };
 
+  // Cleanup object URL on unmount
+  useEffect(() => {
+    return () => {
+      if (analyzedImageUrl) {
+        URL.revokeObjectURL(analyzedImageUrl);
+      }
+    };
+  }, [analyzedImageUrl]);
+
   return (
-    <div className="text-analyzer-layout">
+    <div className="photo-analyzer-layout">
       <PhotoUpload
         selectedFile={selectedFile}
         onFileChange={setSelectedFile}
@@ -64,7 +94,11 @@ export default function PhotoAnalyzer(): JSX.Element {
         loading={loading}
         error={error}
       />
-      <PhotoAnalysisResult result={result} />
+      <PhotoAnalysisResult result={result} uploadedImageUrl={analyzedImageUrl} />
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </div>
   );
 }
