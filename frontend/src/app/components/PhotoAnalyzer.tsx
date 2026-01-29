@@ -4,6 +4,7 @@ import React, { JSX, useEffect, useState } from "react";
 import { useKeycloak } from "../../auth/KeycloakProviderWrapper";
 import PhotoUpload from "./PhotoUpload";
 import PhotoAnalysisResult, { ImageDetectResult } from "./PhotoAnalysisResult";
+import AuthModal from "./AuthModal";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api";
 
@@ -13,8 +14,18 @@ export default function PhotoAnalyzer(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ImageDetectResult | null>(null);
   const [analyzedImageUrl, setAnalyzedImageUrl] = useState<string | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const { keycloak, authenticated } = useKeycloak();
+
+  const handleApiError = (err: any, defaultMessage: string) => {
+    if (err.message?.includes("401")) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    console.error(defaultMessage, err);
+    setError(err.message || defaultMessage);
+  };
 
   const handleAnalyze = async () => {
     if (!selectedFile) {
@@ -59,8 +70,7 @@ export default function PhotoAnalyzer(): JSX.Element {
         });
       }
     } catch (err: any) {
-      console.error("Image analysis failed:", err);
-      setError(err.message || "Failed to analyze image");
+      handleApiError(err, "Image analysis failed:");
     } finally {
       setLoading(false);
     }
@@ -85,6 +95,10 @@ export default function PhotoAnalyzer(): JSX.Element {
         error={error}
       />
       <PhotoAnalysisResult result={result} uploadedImageUrl={analyzedImageUrl} />
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </div>
   );
 }
