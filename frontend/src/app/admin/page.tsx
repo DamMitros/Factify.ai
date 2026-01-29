@@ -2,13 +2,16 @@
 
 import { useKeycloak } from "../../auth/KeycloakProviderWrapper";
 import { useEffect, useState } from "react";
+import { useRouter } from 'next/navigation';
 import axios from "axios";
-import Link from "next/link";
+import Bubbles from "../components/Bubbles";
 import Overview from "./components/Overview";
 import UserManagement from "./components/UserManagement";
 import NLPMonitoring from "./components/NLPMonitoring";
+import ImageMonitoring from "./components/ImageMonitoring";
 import SystemLogs from "./components/SystemLogs";
-import { BackButton } from "../components/BackButton";
+import ImageLogs from "./components/ImageLogs";
+import GlassEffect from "../components/GlassEffect";
 
 interface Stats {
   users: number;
@@ -19,8 +22,9 @@ interface Stats {
 
 export default function AdminDashboard() {
   const { keycloak } = useKeycloak();
+  const router = useRouter();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'nlp' | 'logs' | 'image_logs'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'nlp' | 'image_ai' | 'logs' | 'image_logs'>('overview');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,71 +50,67 @@ export default function AdminDashboard() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-100">
-        <div className="bg-white p-8 rounded-lg shadow-md text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Connection Error</h2>
-          <p className="text-gray-700 mb-4">{error}</p>
-          <button onClick={() => window.location.reload()} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+      <div className="flex items-center justify-center min-h-screen bg-[#0a0a0a]">
+        <GlassEffect className="p-8 text-center max-w-md">
+          <h2 className="text-2xl font-bold text-red-500 mb-4">Connection Error</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-white/10 hover:bg-white/20 px-6 py-2 rounded-lg transition-colors">
             Retry
           </button>
-        </div>
+        </GlassEffect>
       </div>
     );
   }
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview':
-        return <Overview stats={stats} />;
-      case 'users':
-        return <UserManagement />;
-      case 'nlp':
-        return <NLPMonitoring />;
-      case 'logs':
-        return <SystemLogs />;
-      case 'image_logs':
-        return (
-          <div className="bg-white shadow-md rounded-lg p-6 text-center">
-            <h2 className="text-xl font-semibold text-gray-700">Global Analysis Image History</h2>
-            <p className="text-gray-500 mt-2">Coming soon...</p>
-          </div>
-        );
-      default:
-        return <Overview stats={stats} />;
+      case 'overview': return <Overview stats={stats} />;
+      case 'users': return <UserManagement />;
+      case 'nlp': return <NLPMonitoring />;
+      case 'image_ai': return <ImageMonitoring />;
+      case 'logs': return <SystemLogs />;
+      case 'image_logs': return <ImageLogs />;
+      default: return <Overview stats={stats} />;
     }
   };
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
-        <BackButton />
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-white drop-shadow-md">Admin Dashboard</h1>
-          <Link href="/" className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-sm transition-colors flex items-center gap-2 font-medium border border-white/10">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-            Back to Home
-          </Link>
-        </div>
-        
-        <div className="flex space-x-4 mb-8 border-b border-white/30 overflow-x-auto pb-2">
-          <button onClick={() => setActiveTab('overview')} className={`py-2 px-4 font-medium text-sm focus:outline-none whitespace-nowrap rounded-t-lg transition-colors ${activeTab === 'overview' ? 'bg-white/20 text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-            Overview
-          </button>
-          <button onClick={() => setActiveTab('users')} className={`py-2 px-4 font-medium text-sm focus:outline-none whitespace-nowrap rounded-t-lg transition-colors ${activeTab === 'users'? 'bg-white/20 text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-            User Management
-          </button>
-          <button onClick={() => setActiveTab('nlp')} className={`py-2 px-4 font-medium text-sm focus:outline-none whitespace-nowrap rounded-t-lg transition-colors ${activeTab === 'nlp' ? 'bg-white/20 text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-            NLP-AI (Data and Tests)
-          </button>
-          <button onClick={() => setActiveTab('logs')} className={`py-2 px-4 font-medium text-sm focus:outline-none whitespace-nowrap rounded-t-lg transition-colors ${activeTab === 'logs' ? 'bg-white/20 text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-            Global Analysis Text History
-          </button>
-          <button onClick={() => setActiveTab('image_logs')} className={`py-2 px-4 font-medium text-sm focus:outline-none whitespace-nowrap rounded-t-lg transition-colors ${activeTab === 'image_logs' ? 'bg-white/20 text-white border-b-2 border-blue-400' : 'text-white/70 hover:text-white hover:bg-white/10'}`}>
-            Global Analysis Image History
-          </button>
+    <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden flex flex-col">
+      <div className="fixed inset-0 blur-3xl opacity-40 pointer-events-none">
+        <Bubbles />
+      </div>
+
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-12 flex flex-col gap-8">
+
+        <div className="relative flex flex-col items-center justify-center mb-4">
+            <button onClick={() => router.push("/")} className="absolute left-0 top-1/2 -translate-y-1/2 flex items-center gap-2 text-gray-400 hover:text-white transition-colors group px-4 py-2 rounded-lg hover:bg-white/5">
+                <svg className="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                <span className="hidden sm:inline">Back</span>
+            </button>
+
+            <div className="text-center">
+                <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Admin Dashboard</h1>
+            </div>
         </div>
 
-        <div className="bg-white/80 dark:bg-black/60 backdrop-blur-md shadow-xl rounded-xl border border-white/20 p-6">
+        <div className="flex bg-white/5 backdrop-blur-md p-1.5 rounded-2xl border border-white/10 overflow-x-auto shrink-0 scrollbar-hide">
+          {[
+            { id: 'overview', label: 'Overview' },
+            { id: 'users', label: 'Users' },
+            { id: 'nlp', label: 'Text AI' },
+            { id: 'image_ai', label: 'Image AI' },
+            { id: 'logs', label: 'Text History' },
+            { id: 'image_logs', label: 'Image History' }
+          ].map((tab) => (
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`py-2 px-6 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${activeTab === tab.id ? 'bg-white/10 text-white shadow-lg border border-white/5' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
           {renderContent()}
         </div>
       </div>
