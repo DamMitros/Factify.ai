@@ -3,274 +3,281 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useKeycloak } from '../../../auth/KeycloakProviderWrapper';
+import GlassEffect from '../../components/GlassEffect';
 
 interface User {
-  keycloakId?: string;
+  keycloakId: string;
+  username: string;
   email: string;
-  firstName?: string;
-  lastName?: string;
-  username?: string;
-  enabled?: boolean;
+  firstName: string;
+  lastName: string;
+  enabled: boolean;
+  createdAt?: string;
 }
 
-interface HistoryItem {
+interface HistoryLog {
   _id: string;
-  text: string;
-  ai_probability: number;
   timestamp: string;
+  content?: string;
+  text?: string;
+  result?: string;
+  prediction?: string;
+  label?: string;
+  overall?: {
+    label?: string;
+    confidence?: number;
+    prob_generated?: number;
+    prob_human?: number;
+  };
+  ai_probability?: number;
 }
 
 const UserManagement: React.FC = () => {
   const { keycloak } = useKeycloak();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [selectedUserHistory, setSelectedUserHistory] = useState<{ user: User, history: HistoryItem[] } | null>(null);
-  const [expandedHistoryItems, setExpandedHistoryItems] = useState<Set<string>>(new Set());
+  const [syncing, setSyncing] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [history, setHistory] = useState<HistoryLog[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   const fetchUsers = async () => {
+    if (!keycloak?.token) return;
     try {
       const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users`, {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`,
-        },
+        headers: { Authorization: `Bearer ${keycloak.token}` }
       });
       setUsers(response.data);
     } catch (error) {
       console.error("Error fetching users:", error);
-      setMessage({ type: 'error', text: 'Failed to fetch users' });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (keycloak?.token) {
-      fetchUsers();
-    }
+    fetchUsers();
   }, [keycloak?.token]);
 
-  const toggleHistoryItem = (id: string) => {
-    setExpandedHistoryItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const handleDelete = async (email: string) => {
-    if (!confirm(`Are you sure you want to delete user ${email}?`)) return;
-
-    try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${email}`, {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`,
-        },
-      });
-      setUsers(users.filter(u => u.email !== email));
-      setMessage({ type: 'success', text: 'User deleted successfully' });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      setMessage({ type: 'error', text: 'Failed to delete user' });
-    }
-  };
-
-  const handleBlockToggle = async (user: User) => {
-    if (!user.keycloakId) return;
-    const newStatus = !user.enabled;
-    const action = newStatus ? 'unblock' : 'block';
-    
-    if (!confirm(`Are you sure you want to ${action} user ${user.email}?`)) return;
-
-    try {
-      await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${user.keycloakId}/block`, 
-        { enabled: newStatus },
-        {
-          headers: {
-            Authorization: `Bearer ${keycloak.token}`,
-          },
-        }
-      );
-      
-      setUsers(users.map(u => u.keycloakId === user.keycloakId ? { ...u, enabled: newStatus } : u));
-      setMessage({ type: 'success', text: `User ${action}ed successfully` });
-    } catch (error) {
-      console.error(`Error ${action}ing user:`, error);
-      setMessage({ type: 'error', text: `Failed to ${action} user` });
-    }
-  };
-
-  const handleViewHistory = async (user: User) => {
-    if (!user.keycloakId) return;
-    try {
-      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${user.keycloakId}/history`, {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`,
-        },
-      });
-      setSelectedUserHistory({ user, history: response.data });
-    } catch (error) {
-      console.error("Error fetching history:", error);
-      setMessage({ type: 'error', text: 'Failed to fetch user history' });
-    }
-  };
-
   const handleSync = async () => {
+    setSyncing(true);
     try {
-      setLoading(true);
-      setMessage(null);
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/sync`, {}, {
-        headers: {
-          Authorization: `Bearer ${keycloak.token}`,
-        },
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/sync`, {}, {
+        headers: { Authorization: `Bearer ${keycloak.token}` }
       });
       await fetchUsers();
-      setMessage({ type: 'success', text: response.data.message || 'Users synced successfully' });
     } catch (error) {
-      console.error("Error syncing users:", error);
-      setMessage({ type: 'error', text: 'Failed to sync users with Keycloak' });
+      console.error("Sync failed:", error);
     } finally {
-      setLoading(false);
+      setSyncing(false);
     }
   };
 
-  if (loading) return <div>Loading users...</div>;
+  const toggleBlockUser = async (user: User) => {
+    try {
+      setUsers(users.map(u => u.keycloakId === user.keycloakId ? { ...u, enabled: !u.enabled } : u));
+      
+      await axios.put(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${user.keycloakId}/block`, 
+        { enabled: !user.enabled },
+        { headers: { Authorization: `Bearer ${keycloak.token}` } }
+      );
+    } catch (error) {
+      console.error("Block/Unblock failed:", error);
+      fetchUsers();
+    }
+  };
+
+  const handleDeleteUser = async (email: string) => {
+    if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) return;
+
+    try {
+      setUsers(users.filter(u => u.email !== email));
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${email}`, {
+        headers: { Authorization: `Bearer ${keycloak.token}` }
+      });
+    } catch (error) {
+      console.error("Delete user failed:", error);
+      alert("Failed to delete user.");
+      fetchUsers();
+    }
+  };
+
+  const fetchUserHistory = async (user: User) => {
+    setSelectedUser(user);
+    setLoadingHistory(true);
+    setHistory([]);
+    try {
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${user.keycloakId}/history`, {
+        headers: { Authorization: `Bearer ${keycloak.token}` }
+      });
+      setHistory(response.data);
+    } catch (error) {
+      console.error("History fetch failed:", error);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   return (
-    <>
-      {selectedUserHistory && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center p-4">
-          <div className="relative w-full max-w-6xl max-h-[90vh] flex flex-col bg-white/95 dark:bg-gray-900/95 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden">
-            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">History for {selectedUserHistory.user.email}</h3>
-              <button onClick={() => setSelectedUserHistory(null)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto overflow-x-auto flex-grow">
-              {selectedUserHistory.history.length > 0 ? (
-                <table className="min-w-full leading-normal">
-                  <thead>
-                    <tr>
-                      <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">Date</th>
-                      <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">AI Prob</th>
-                      <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Text Snippet</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedUserHistory.history.map((item) => {
-                      const isExpanded = expandedHistoryItems.has(item._id);
-                      const text = item.text || '';
-                      const displayText = isExpanded ? text : (text.length > 100 ? text.substring(0, 100) + '...' : text);
-                      
-                      return (
-                        <tr key={item._id}>
-                          <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm align-top text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                            {new Date(item.timestamp).toLocaleString()}
-                          </td>
-                          <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm align-top text-gray-900 dark:text-gray-100 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="w-16 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mr-2">
-                                <div 
-                                  className="bg-blue-600 h-2.5 rounded-full" 
-                                  style={{ width: `${Math.min(item.ai_probability || 0, 100)}%` }}
-                                ></div>
-                              </div>
-                              <span>{item.ai_probability ? item.ai_probability.toFixed(2) : 0}%</span>
-                            </div>
-                          </td>
-                          <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm text-gray-900 dark:text-gray-100 min-w-[300px]">
-                            <p className="break-words">
-                              {displayText}
-                            </p>
-                            {text.length > 100 && (
-                              <button onClick={() => toggleHistoryItem(item._id)} className="text-blue-500 hover:text-blue-400 text-xs mt-1 font-medium">
-                                {isExpanded ? 'Show less' : 'Show more'}
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400 text-center py-8">No history found for this user.</p>
-              )}
-            </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-white tracking-tight">Users</h2>
+        <button onClick={handleSync} disabled={syncing} className={`px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 ${syncing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+          {syncing ? (
+             <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+          ) : (
+             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+          )}
+          Sync with Keycloak
+        </button>
+      </div>
 
-            <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 shrink-0 flex justify-end">
-              <button onClick={() => setSelectedUserHistory(null)} className="px-6 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg transition-colors font-medium">
-                Close
-              </button>
-            </div>
-          </div>
+      <GlassEffect className="rounded-2xl overflow-hidden border border-white/10">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-400">
+            <thead className="bg-white/5 text-gray-200 uppercase text-xs">
+              <tr>
+                <th className="px-6 py-4 font-medium tracking-wider">User</th>
+                <th className="px-6 py-4 font-medium tracking-wider">Email</th>
+                <th className="px-6 py-4 font-medium tracking-wider">Status</th>
+                <th className="px-6 py-4 font-medium tracking-wider text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {loading ? (
+                 <tr><td colSpan={4} className="px-6 py-8 text-center animate-pulse">Loading users...</td></tr>
+              ) : users.map((user) => (
+                <tr key={user.keycloakId} className="hover:bg-white/5 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                        <div className="text-white font-medium">{user.username || 'No Username'}</div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">{user.email}</td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium border ${
+                      user.enabled 
+                        ? 'bg-green-500/10 text-green-400 border-green-500/20' 
+                        : 'bg-red-500/10 text-red-400 border-red-500/20'
+                    }`}>
+                      {user.enabled ? 'Active' : 'Blocked'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right flex justify-end gap-2">
+                    <button 
+                        onClick={() => fetchUserHistory(user)}
+                        title="View History"
+                        className="p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 text-gray-400 hover:text-blue-400 border border-transparent hover:border-blue-500/30 transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                    <button 
+                        onClick={() => toggleBlockUser(user)}
+                        title={user.enabled ? 'Block User' : 'Unblock User'}
+                        className={`p-2 rounded-lg border transition-all ${
+                            user.enabled 
+                            ? 'bg-white/5 hover:bg-yellow-500/20 text-gray-400 hover:text-yellow-400 border-transparent hover:border-yellow-500/30' 
+                            : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/20'
+                        }`}
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                    </button>
+                    <button 
+                        onClick={() => handleDeleteUser(user.email)}
+                        title="Delete User"
+                        className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-transparent hover:border-red-500/30 transition-all"
+                    >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </GlassEffect>
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedUser(null)}></div>
+            <GlassEffect className="relative w-full max-w-2xl max-h-[80vh] flex flex-col rounded-2xl border border-white/20 shadow-2xl overflow-hidden bg-[#0a0a0a]">
+                <div className="p-6 border-b border-white/10 flex justify-between items-center bg-white/5">
+                    <h3 className="text-xl font-bold text-white">History: {selectedUser.username}</h3>
+                    <button onClick={() => setSelectedUser(null)} className="text-gray-400 hover:text-white transition-colors">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-0 custom-scrollbar">
+                    {loadingHistory ? (
+                        <div className="p-12 flex justify-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                        </div>
+                    ) : history.length === 0 ? (
+                        <div className="p-12 text-center text-gray-500">No analysis history found for this user.</div>
+                    ) : (
+                        <table className="w-full text-left text-sm text-gray-400">
+                            <thead className="bg-black/40 sticky top-0 backdrop-blur-md z-10">
+                                <tr>
+                                    <th className="px-6 py-3 font-medium text-xs uppercase tracking-wider text-gray-500">Time</th>
+                                    <th className="px-6 py-3 font-medium text-xs uppercase tracking-wider text-gray-500">Snippet</th>
+                                    <th className="px-6 py-3 font-medium text-xs uppercase tracking-wider text-right text-gray-500">Result</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {history.map((h) => {
+                                    const displayText = h.text || h.content || '-';
+
+                                    let resultRaw = h.overall?.label || h.label || h.result || h.prediction || 'Unknown';
+                                    
+                                    const resultStr = String(resultRaw);
+                                    const resultLower = resultStr.toLowerCase();
+                                    const isHuman = resultLower.includes('human') || resultLower.includes('real');
+                                    const isAi = resultLower.includes('ai') || resultLower.includes('fake') || resultLower.includes('generated');
+                                    const isUnknown = resultStr === 'Unknown';
+
+                                    let confidenceDisplay = '';
+                                    if (h.overall?.confidence) {
+                                        confidenceDisplay = `${(h.overall.confidence * 100).toFixed(1)}%`;
+                                    } else if (h.ai_probability !== undefined) {
+                                        confidenceDisplay = `${h.ai_probability.toFixed(1)}%`;
+                                    }
+                                    
+                                    return (
+                                    <tr key={h._id} className="hover:bg-white/5 transition-colors">
+                                        <td className="px-6 py-3 whitespace-nowrap text-xs font-mono">
+                                            {h.timestamp ? new Date(h.timestamp).toLocaleDateString() + ' ' + new Date(h.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '-'}
+                                        </td>
+                                        <td className="px-6 py-3 text-gray-300">
+                                            <div className="truncate max-w-[240px]" title={displayText}>
+                                                {displayText}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-3 text-right">
+                                            <div className="flex flex-col items-end gap-1">
+                                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                                                    isUnknown ? 'bg-gray-500/20 text-gray-400' :
+                                                    isHuman
+                                                    ? 'bg-green-500/20 text-green-400 border border-green-500/20' 
+                                                    : 'bg-red-500/20 text-red-400 border border-red-500/20'
+                                                }`}>
+                                                    {resultStr}
+                                                </span>
+                                                {confidenceDisplay && (
+                                                    <span className="text-[10px] text-gray-500 font-mono">{confidenceDisplay}</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )})}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </GlassEffect>
         </div>
       )}
-
-      <div className="bg-white/40 dark:bg-black/40 backdrop-blur-sm shadow-sm rounded-lg overflow-hidden relative border border-white/20">
-        <div className="p-4 flex justify-between items-center border-b border-white/20">
-        <div>
-          {message && (
-            <div className={`px-4 py-2 rounded ${message.type === 'success' ? 'bg-green-100/80 text-green-800' : 'bg-red-100/80 text-red-800'}`}>{message.text}</div>
-          )}
-        </div>
-        <div className="flex space-x-2">
-          <button onClick={handleSync} className="bg-green-500/90 hover:bg-green-600 text-white font-bold py-2 px-4 rounded shadow-lg backdrop-blur-sm transition-all">
-            Sync with Keycloak
-          </button>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full leading-normal">
-          <thead>
-            <tr>
-              <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Email</th>
-              <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Username</th>
-              <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Status</th>
-              <th className="px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-100/50 dark:bg-gray-800/50 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.email}>
-                <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm">
-                  <p className="text-gray-900 dark:text-gray-100 whitespace-no-wrap">{user.email}</p>
-                </td>
-                <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm">
-                  <p className="text-gray-900 dark:text-gray-100 whitespace-no-wrap">{user.username || '-'}</p>
-                </td>
-                <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm">
-                  <span className={`relative inline-block px-3 py-1 font-semibold leading-tight ${user.enabled !== false ? 'text-green-900' : 'text-red-900'}`}>
-                    <span aria-hidden className={`absolute inset-0 opacity-50 rounded-full ${user.enabled !== false ? 'bg-green-200' : 'bg-red-200'}`}></span>
-                    <span className="relative">{user.enabled !== false ? 'Active' : 'Blocked'}</span>
-                  </span>
-                </td>
-                <td className="px-5 py-5 border-b border-gray-200 dark:border-gray-700 bg-transparent text-sm space-x-2">
-                  <button onClick={() => handleViewHistory(user)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-                    History
-                  </button>
-                  <button onClick={() => handleBlockToggle(user)} className={`${user.enabled !== false ? 'text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300' : 'text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300'}`}>
-                    {user.enabled !== false ? 'Block' : 'Unblock'}
-                  </button>
-                  <button onClick={() => handleDelete(user.email)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      </div>
-    </>
+    </div>
   );
 };
 

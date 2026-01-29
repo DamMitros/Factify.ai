@@ -31,7 +31,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div>
       {children}
     </div>
   );
