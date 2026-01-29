@@ -18,9 +18,12 @@ async function apiRequest<T>(
   const { requireAuth = true, headers = {}, ...fetchOptions } = options;
 
   const requestHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
     ...(headers as Record<string, string>),
   };
+
+  if (!(fetchOptions.body instanceof FormData)) {
+    requestHeaders['Content-Type'] = 'application/json';
+  }
 
   if (requireAuth) {
     // if (!keycloak.authenticated || !keycloak.token) {
@@ -78,14 +81,14 @@ export const api = {
     apiRequest<T>(endpoint, {
       ...options,
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }),
 
   put: <T>(endpoint: string, data?: any, options?: RequestOptions) =>
     apiRequest<T>(endpoint, {
       ...options,
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }),
 
   delete: <T>(endpoint: string, options?: RequestOptions) =>
