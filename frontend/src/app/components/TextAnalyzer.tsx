@@ -4,6 +4,8 @@ import React, { JSX, useState } from "react";
 import TextAnalyzerOptions from "./TextAnalyzerOptions";
 import TextAnalyzerResults from "./TextAnalyzerResults";
 import ManipulationResults, { ManipulationResultData } from "./ManipulationResults";
+import FindSourcesResults, { FindSourcesResultData } from "./FindSourcesResults";
+import AuthModal from "./AuthModal";
 import { api } from "../../lib/api";
 import { useKeycloak } from "../../auth/KeycloakProviderWrapper";
 
@@ -12,10 +14,21 @@ export default function TextAnalyzer(): JSX.Element {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);
     const [manipulationResult, setManipulationResult] = useState<ManipulationResultData | null>(null);
+    const [findSourcesResult, setFindSourcesResult] = useState<FindSourcesResultData | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [activeOption, setActiveOption] = useState<number | null>(1);
-    const [analysisKind, setAnalysisKind] = useState<"ai" | "manipulation" | null>("ai");
+    const [analysisKind, setAnalysisKind] = useState<"ai" | "manipulation" | "find_sources" | null>("ai");
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const { keycloak, authenticated } = useKeycloak();
+
+    const handleApiError = (err: any, defaultMessage: string) => {
+        if (err.message?.includes("401")) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+        console.error(defaultMessage, err);
+        setError(err.message || defaultMessage);
+    };
 
     const handleAiAnalyze = async () => {
         if (!text.trim()) {
@@ -27,22 +40,67 @@ export default function TextAnalyzer(): JSX.Element {
         setError(null);
         setResult(null);
         setManipulationResult(null);
+        setFindSourcesResult(null);
         setAnalysisKind("ai");
 
+        // try {
+        //     const userId = authenticated && keycloak?.tokenParsed?.sub
+        //         ? keycloak.tokenParsed.sub
+        //         : undefined;
+        //
+        //     const { data } = await api.post('/nlp/predict', {
+        //         text: text,
+        //         detailed: true,
+        //     }, { requireAuth: authenticated });
+        //
+        //     setResult(data);
+        // } catch (err: any) {
+        //     handleApiError(err, "Analysis failed:");
+        // } finally {
+        //     setLoading(false);
+        // }
+
         try {
-            const userId = authenticated && keycloak?.tokenParsed?.sub 
-                ? keycloak.tokenParsed.sub 
-                : undefined;
+            interface StartResponse { success: boolean; taskId?: string; message?: string; }
+            interface StatusResponse { success: boolean; message?: string; data?: ManipulationResultData; }
 
-            const { data } = await api.post('/nlp/predict', {
-                text: text,
-                detailed: true,
-            }, { requireAuth: authenticated });
+            const { data: start } = await api.post<StartResponse>(
+                "/analysis/ai",
+                { text },
+                { requireAuth: authenticated }
+            );
 
-            setResult(data);
+            if (!start.success || !start.taskId) {
+                throw new Error(start.message || "Failed to start AI detection analysis");
+            }
+
+            const taskId = start.taskId;
+            const pollIntervalMs = 2000;
+            const maxAttempts = 30;
+
+            const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const { data: status } = await api.get<StatusResponse>(
+                    `/analysis/ai/${taskId}`,
+                    { requireAuth: authenticated }
+                );
+
+                if (status.success && status.data) {
+                    setResult(status.data);
+                    return;
+                }
+
+                if (!status.success && status.message && status.message !== "Task is not completed yet.") {
+                    throw new Error(status.message);
+                }
+
+                await sleep(pollIntervalMs);
+            }
+
+            throw new Error("AI detection analysis timed out. Please try again.");
         } catch (err: any) {
-            console.error("Analysis failed:", err);
-            setError(err.message || "Failed to analyze text");
+            handleApiError(err, "AI detection analysis failed:");
         } finally {
             setLoading(false);
         }
@@ -58,6 +116,7 @@ export default function TextAnalyzer(): JSX.Element {
         setError(null);
         setResult(null);
         setManipulationResult(null);
+        setFindSourcesResult(null);
         setAnalysisKind("manipulation");
 
         try {
@@ -100,8 +159,66 @@ export default function TextAnalyzer(): JSX.Element {
 
             throw new Error("Manipulation analysis timed out. Please try again.");
         } catch (err: any) {
-            console.error("Manipulation analysis failed:", err);
-            setError(err.message || "Failed to analyze manipulation");
+            handleApiError(err, "Manipulation analysis failed:");
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    const handleFindSourcesAnalyze = async () => {
+        if (!text.trim()) {
+            setError("Please enter some text to analyze");
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setManipulationResult(null);
+        setFindSourcesResult(null);
+        setAnalysisKind("find_sources");
+
+        try {
+            interface StartResponse { success: boolean; taskId?: string; message?: string; }
+            interface StatusResponse { success: boolean; message?: string; data?: FindSourcesResultData; }
+
+            const { data: start } = await api.post<StartResponse>(
+                "/analysis/find_sources",
+                { text },
+                { requireAuth: authenticated }
+            );
+
+            if (!start.success || !start.taskId) {
+                throw new Error(start.message || "Failed to start source analysis");
+            }
+
+            const taskId = start.taskId;
+            const pollIntervalMs = 2000;
+            const maxAttempts = 30;
+
+            const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const { data: status } = await api.get<StatusResponse>(
+                    `/analysis/find_sources/${taskId}`,
+                    { requireAuth: authenticated }
+                );
+
+                if (status.success && status.data) {
+                    setFindSourcesResult(status.data);
+                    return;
+                }
+
+                if (!status.success && status.message && status.message !== "Task is not completed yet.") {
+                    throw new Error(status.message);
+                }
+
+                await sleep(pollIntervalMs);
+            }
+
+            throw new Error("Source analysis timed out. Please try again.");
+        } catch (err: any) {
+            handleApiError(err, "Source analysis failed:");
         } finally {
             setLoading(false);
         }
@@ -112,6 +229,8 @@ export default function TextAnalyzer(): JSX.Element {
 
         if (mode === 2) {
             await handleManipulationAnalyze();
+        } else if (mode === 3) {
+            await handleFindSourcesAnalyze();
         } else {
             await handleAiAnalyze();
         }
@@ -169,6 +288,12 @@ export default function TextAnalyzer(): JSX.Element {
             </section>
             {analysisKind === "ai" && <TextAnalyzerResults result={result} />}
             {analysisKind === "manipulation" && <ManipulationResults result={manipulationResult} />}
+            {analysisKind === "find_sources" && <FindSourcesResults result={findSourcesResult} />}
+
+            <AuthModal 
+                isOpen={isAuthModalOpen} 
+                onClose={() => setIsAuthModalOpen(false)} 
+            />
         </div>
     );
 }

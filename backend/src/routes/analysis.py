@@ -27,7 +27,7 @@ def extract_request_text():
     return str(json_payload.get("text", "")).strip()
 
 
-@analysis.route("/", methods=["POST"])
+@analysis.route("/ai", methods=["POST"])
 @require_auth
 def create_analysis():
     text = extract_request_text()
@@ -50,7 +50,7 @@ def create_analysis():
     })
 
 
-@analysis.route("/<task_id>", methods=["GET"])
+@analysis.route("/ai/<task_id>", methods=["GET"])
 @require_auth
 def get_analysis(task_id):
     task = db.get_database("factify_ai")["cron_tasks"].find_one({"_id": ObjectId(task_id)})
@@ -81,14 +81,64 @@ def get_analysis(task_id):
         "success": True,
         "data": {
             "text": analysis_data.get("text"),
-            "result": {
-                "ai_probability": analysis_data.get("ai_probability"),
-                "segments": analysis_data.get("segments"),
-                "overall": analysis_data.get("overall")
-            },
+            "ai_probability": analysis_data.get("ai_probability"),
+            "segments": analysis_data.get("segments"),
+            "overall": analysis_data.get("overall"),
             "user_id": analysis_data.get("user_id")
         }
     })
+
+
+@analysis.route("/ai/predictions/<user_id>", methods=["GET"])
+@require_auth
+def get_ai_predictions_by_user(user_id: str):
+    """Return history of AI detection analyses for given user."""
+    user_id = (user_id or "").strip()
+    if not user_id:
+        raise BadRequest("Missing user_id")
+
+    try:
+        database = db.get_database("factify_ai")
+        collection = database["analysis"]
+
+        cursor = collection.find({"user_id": user_id}).sort("_id", -1)
+
+        results = [
+            {
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "ai_probability": doc.get("ai_probability"),
+                "human_probability": 100 - doc.get("ai_probability", 0),
+                "created_at": doc.get("timestamp"),
+                "segments": doc.get("segments"),
+                "overall": doc.get("overall"),
+                "confidence": doc.get("overall", {}).get("confidence"),
+                "type": "text",
+            }
+            for doc in cursor
+        ]
+
+        # results = []
+        # for doc in cursor:
+        #     created_at = (
+        #             doc.get("timestamp")
+        #             or doc.get("created_at")
+        #             or getattr(doc.get("_id"), "generation_time", None)
+        #     )
+        #
+        #     results.append({
+        #         "id": str(doc.get("_id")),
+        #         "text": doc.get("text"),
+        #         "result": doc.get("result"),
+        #         "user_id": doc.get("user_id"),
+        #         "created_at": created_at,
+        #         "type": "manipulation",
+        #     })
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch manipulation analyses for user %s: %s", user_id, e)
+        raise InternalServerError("Failed to fetch manipulation analyses")
 
 
 @analysis.route("/manipulation", methods=["POST"])
@@ -179,12 +229,50 @@ def get_manipulation_predictions_by_user(user_id: str):
                 "result": doc.get("result"),
                 "user_id": doc.get("user_id"),
                 "created_at": created_at,
+                "type": "manipulation",
             })
 
         return jsonify(results)
     except Exception as e:
         current_app.logger.exception("Failed to fetch manipulation analyses for user %s: %s", user_id, e)
         raise InternalServerError("Failed to fetch manipulation analyses")
+
+
+@analysis.route("/find_sources/predictions/<user_id>", methods=["GET"])
+@require_auth
+def get_find_sources_predictions_by_user(user_id: str):
+    """Return history of find_sources analyses for given user."""
+    user_id = (user_id or "").strip()
+    if not user_id:
+        raise BadRequest("Missing user_id")
+
+    try:
+        database = db.get_database("factify_ai")
+        collection = database["find_sources"]
+
+        cursor = collection.find({"user_id": user_id}).sort("_id", -1)
+
+        results = []
+        for doc in cursor:
+            created_at = (
+                doc.get("timestamp")
+                or doc.get("created_at")
+                or getattr(doc.get("_id"), "generation_time", None)
+            )
+
+            results.append({
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "result": doc.get("result"),
+                "user_id": doc.get("user_id"),
+                "created_at": created_at,
+                "type": "find_sources",
+            })
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch find_sources analyses for user %s: %s", user_id, e)
+        raise InternalServerError("Failed to fetch find_sources analyses")
 
 
 @analysis.route("/find_sources", methods=["POST"])

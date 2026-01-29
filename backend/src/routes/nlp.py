@@ -205,6 +205,7 @@ def get_predictions_by_user(user_id: str):
                 "segments": doc.get("segments"),
                 "overall": doc.get("overall"),
                 "confidence": doc.get("overall", {}).get("confidence"),
+                "type": "text",
             }
             for doc in cursor
         ]
