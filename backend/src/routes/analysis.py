@@ -10,7 +10,8 @@ from datetime import datetime
 
 analysis = Blueprint("analysis", __name__)
 
-
+# Na ten moment bez modyfikacji zmiennych bazy danych 
+# Podział odpowiednio na analize tekstową i obrazową, manipulacje i wyszukiwanie źródeł????
 def extract_request_text():
     if "file" in request.files:
         file = request.files["file"]

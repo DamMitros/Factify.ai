@@ -1,3 +1,4 @@
+from .detector.cli import main
 from .detector.config import (
     DEFAULT_DATA_PATH,
     DEFAULT_MODEL_PATH,
@@ -18,6 +19,7 @@ __all__ = [
   "evaluate_model",
   "evaluate_saved_model",
   "load_model_artifacts",
+  "main",
   "predict_proba",
   "predict_segmented_text",
   "train_model"
