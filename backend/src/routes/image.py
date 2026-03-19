@@ -13,8 +13,8 @@ image_bp = Blueprint("image", __name__)
 
 
 _detector = None
-
-
+# Stałe bazy danych do ogarnicia
+# Przeróbka model do crona, tutaj taski i odbiory
 def get_detector():
     """Zwraca singleton instancję ImageDetector."""
     global _detector
