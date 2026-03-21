@@ -1,12 +1,3 @@
-import os
-
-GLOBAL_PATH_PREFIX = os.getenv("BACKEND_GLOBAL_PATH_PREFIX", "/api")
-
-MONGODB_USER = os.getenv("MONGODB_USER")
-MONGODB_PASSWORD = os.getenv("MONGODB_PASSWORD")
-MONGODB_HOST = os.getenv("MONGODB_HOST")
-MONGODB_PORT = os.getenv("MONGODB_PORT")
-
 DB_NAME = "factify"
 
 COL_POSTS = "posts"

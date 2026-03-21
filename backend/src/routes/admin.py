@@ -9,6 +9,9 @@ admin_bp = Blueprint('admin', __name__)
 NLP_REPORTS_DIR = os.path.join(os.getcwd(), "nlp", "artifacts", "reports")
 IMAGE_REPORTS_DIR = os.path.join(os.getcwd(), "image_detection", "artifacts", "reports")
 
+#Trzeba tutaj zrobić źródła i manipulacje
+# NLP I IMAGE DIRY nie bedą działać bo są wywalone do crona 
+# Trzeba będzie stworzyć system dodawania ich do bazy danych albo zapis tak aby byl dostep z crona i backendu imo opcja 1
 @admin_bp.route('/stats', methods=['GET'])
 @role_required('admin')
 def get_system_stats():

@@ -15,11 +15,8 @@ def create_model(num_classes=2, pretrained=True):
     Returns:
         model: Skonfigurowany model PyTorch
     """
-    if pretrained:
-        weights = models.EfficientNet_B0_Weights.DEFAULT
-        model = models.efficientnet_b0(weights=weights)
-    else:
-        model = models.efficientnet_b0(weights=None)
+    weights = models.EfficientNet_B0_Weights.DEFAULT if pretrained else None
+    model = models.efficientnet_b0(weights=weights)
     
     # Zamroź backbone (odmrożymy później podczas treningu)
     for param in model.features.parameters():
