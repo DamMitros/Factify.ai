@@ -2,7 +2,7 @@ import json
 
 from context import TaskContext
 from types_ import TaskPayload
-
+from config import DB_NAME, COL_ANALYSIS_MANIPULATION
 
 def task(payload: TaskPayload, ctx: TaskContext):
     text = payload["text"]
@@ -47,8 +47,8 @@ Your task is to analyze the provided text for specific categories of bias and ma
     print(f"[analyze_manipulation] LLM response:")
     print(json.dumps(response_json, indent=4))
 
-    database = ctx.db.get_database("factify_ai")
-    collection = database["analysis_manipulation"]
+    database = ctx.db.get_database(DB_NAME)
+    collection = database[COL_ANALYSIS_MANIPULATION]
     doc = {
         "text": text,
         "result": response_json,

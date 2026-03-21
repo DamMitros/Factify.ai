@@ -7,6 +7,7 @@ from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE
 
 history_bp = Blueprint("history", __name__)
 
+# Trzbea tutaj dodać manipulacje i źródła
 @history_bp.route("/my-analyses", methods=["GET"])
 @require_auth
 def get_my_analyses():
