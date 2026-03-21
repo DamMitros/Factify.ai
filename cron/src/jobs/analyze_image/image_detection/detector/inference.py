@@ -31,7 +31,8 @@ class ImageDetector:
                 f"Wytrenuj model używając training.py lub pobierz z releases."
             )
         
-        model = create_model()
+        # model = create_model()
+        model = create_model(pretrained=False)
         state_dict = torch.load(self.model_path, map_location=self.device)
         
         # FIX: Check if we are loading a state_dict or the whole model
