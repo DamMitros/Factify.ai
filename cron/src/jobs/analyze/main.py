@@ -5,7 +5,6 @@ from types_ import TaskPayload
 from .nlp.detector.model_utils import load_model_artifacts
 from .helpers import helper_to_predict
 
-from config import DB_NAME, COL_ANALYSIS_AI_TEXT
 
 def task(payload: TaskPayload, ctx: TaskContext):
     text = payload["text"]
@@ -13,8 +12,8 @@ def task(payload: TaskPayload, ctx: TaskContext):
 
     response, ai_prob_pct = helper_to_predict(text)
 
-    database = ctx.db.get_database(DB_NAME)
-    collection = database[COL_ANALYSIS_AI_TEXT]
+    database = ctx.db.get_database("factify_ai")
+    collection = database["analysis"]
     doc = {
         "text": text,
         "ai_probability": ai_prob_pct,

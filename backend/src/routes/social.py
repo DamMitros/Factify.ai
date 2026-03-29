@@ -4,13 +4,75 @@ from bson import ObjectId
 from datetime import datetime
 from keycloak_client import require_auth
 from common.python import db
-from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_POSTS,COL_COMMENTS
 
 social_bp = Blueprint("social", __name__)
 
 def serialize_doc(doc):
   doc["_id"] = str(doc["_id"])
   return doc
+
+@social_bp.route("/my-analyses", methods=["GET"])
+@require_auth
+def get_my_analyses():
+  user_id = g.user.get("sub")  
+  db_instance = db.get_database("factify")
+  
+  # Fetch from text analysis
+  text_results = list(db_instance["analysis"].find({"user_id": user_id}).sort("created_at", -1).limit(20))
+  
+  # Fetch from image analysis
+  image_results = list(db_instance["image_analysis"].find({"user_id": user_id}).sort("timestamp", -1).limit(20))
+
+  analyses = []
+  
+  # Process text analyses
+  for doc in text_results:
+    overall = doc.get("overall", {})
+    label = overall.get("label") or doc.get("label") or doc.get("prediction") or "Unknown"
+    score = overall.get("confidence") or overall.get("score") or doc.get("score") or doc.get("confidence") or 0
+    text = doc.get("text") or doc.get("content") or ""
+
+    try:
+      score = float(score)
+    except (ValueError, TypeError):
+      score = 0.0
+
+    analyses.append({
+      "id": str(doc["_id"]),
+      "text_preview": text[:80] + "..." if text else "No text content",
+      "label": label,
+      "score": score,
+      "type": "text",
+      "created_at": doc.get("timestamp") or doc.get("created_at")
+    })
+
+  # Process image analyses
+  for doc in image_results:
+    overall = doc.get("overall", {})
+    label = overall.get("label") or "Unknown"
+    score = overall.get("confidence") or doc.get("ai_probability", 0) / 100 or 0
+    filename = doc.get("filename") or "image"
+
+    try:
+      score = float(score)
+    except (ValueError, TypeError):
+      score = 0.0
+
+    analyses.append({
+      "id": str(doc["_id"]),
+      "text_preview": f"Image Analysis: {filename}",
+      "label": label,
+      "score": score,
+      "type": "image",
+      "image_preview": doc.get("image_preview"),
+      "created_at": doc.get("timestamp")
+    })
+
+  # Sort combined results by created_at descending
+  analyses.sort(key=lambda x: x["created_at"] if x["created_at"] else datetime.min, reverse=True)
+  
+  return jsonify(analyses[:20])
+
 
 @social_bp.route("/feed", methods=["POST"])
 @require_auth
@@ -34,7 +96,7 @@ def share_prediction():
     "created_at": datetime.utcnow()
   }
 
-  result = db.get_database(DB_NAME)[COL_POSTS].insert_one(post)
+  result = db.get_database("factify")["posts"].insert_one(post)
   
   return jsonify({
     "success": True,
@@ -43,10 +105,10 @@ def share_prediction():
 
 @social_bp.route("/feed", methods=["GET"])
 def get_feed():
-  posts_cursor = db.get_database(DB_NAME)[COL_POSTS].find().sort("created_at", -1).limit(50)
+  posts_cursor = db.get_database("factify")["posts"].find().sort("created_at", -1).limit(50)
   posts = []
   
-  db_instance = db.get_database(DB_NAME)
+  db_instance = db.get_database("factify")
   
   for doc in posts_cursor:
     post = serialize_doc(doc)
@@ -54,14 +116,15 @@ def get_feed():
     if post.get("analysis_id"):
       try:
         a_type = post.get("analysis_type", "text")
-        collection = COL_ANALYSIS_AI_IMAGE if a_type == "image" else COL_ANALYSIS_AI_TEXT
+        collection = "image_analysis" if a_type == "image" else "analysis"
         analysis = db_instance[collection].find_one({"_id": ObjectId(post["analysis_id"])})
 
+        # Fallback if type was wrong
         if not analysis:
-            alt_collection = COL_ANALYSIS_AI_TEXT if a_type == "image" else COL_ANALYSIS_AI_IMAGE
+            alt_collection = "analysis" if a_type == "image" else "image_analysis"
             analysis = db_instance[alt_collection].find_one({"_id": ObjectId(post["analysis_id"])})
             if analysis:
-                a_type = "text" if alt_collection == COL_ANALYSIS_AI_TEXT else "image"
+                a_type = "text" if alt_collection == "analysis" else "image"
 
         if analysis:
           overall = analysis.get("overall", {})
@@ -100,7 +163,7 @@ def get_feed():
 @social_bp.route("/feed/<post_id>", methods=["DELETE"])
 @require_auth
 def delete_post(post_id):
-  posts_col = db.get_database(DB_NAME)[COL_POSTS]
+  posts_col = db.get_database("factify")["posts"]
   post = posts_col.find_one({"_id": ObjectId(post_id)})
   
   if not post:
@@ -110,7 +173,7 @@ def delete_post(post_id):
     raise Forbidden("You can only delete your own posts.")
 
   posts_col.delete_one({"_id": ObjectId(post_id)})
-  db.get_database(DB_NAME)[COL_COMMENTS].delete_many({"post_id": post_id})
+  db.get_database("factify")["comments"].delete_many({"post_id": post_id})
   
   return jsonify({"success": True})
 
@@ -123,7 +186,7 @@ def update_post(post_id):
   if not new_content:
     raise BadRequest("Content cannot be empty.")
     
-  posts_col = db.get_database(DB_NAME)[COL_POSTS]
+  posts_col = db.get_database("factify")["posts"]
   post = posts_col.find_one({"_id": ObjectId(post_id)})
   
   if not post:
@@ -143,7 +206,7 @@ def update_post(post_id):
 @require_auth
 def toggle_like(post_id):
   user_id = g.user.get("sub")
-  posts_col = db.get_database(DB_NAME)[COL_POSTS]
+  posts_col = db.get_database("factify")["posts"]
   
   post = posts_col.find_one({"_id": ObjectId(post_id)})
   if not post:
@@ -181,9 +244,9 @@ def add_comment(post_id):
     "created_at": datetime.utcnow()
   }
 
-  db.get_database(DB_NAME)[COL_COMMENTS].insert_one(comment)
+  db.get_database("factify")["comments"].insert_one(comment)
   
-  db.get_database(DB_NAME)[COL_POSTS].update_one(
+  db.get_database("factify")["posts"].update_one(
     {"_id": ObjectId(post_id)},
     {"$inc": {"comments_count": 1}}
   )
@@ -192,14 +255,14 @@ def add_comment(post_id):
 
 @social_bp.route("/feed/<post_id>/comments", methods=["GET"])
 def get_comments(post_id):
-  comments_cursor = db.get_database(DB_NAME)[COL_COMMENTS].find({"post_id": post_id}).sort("created_at", 1)
+  comments_cursor = db.get_database("factify")["comments"].find({"post_id": post_id}).sort("created_at", 1)
   comments = [serialize_doc(doc) for doc in comments_cursor]
   return jsonify(comments)
 
 @social_bp.route("/feed/comments/<comment_id>", methods=["DELETE"])
 @require_auth
 def delete_comment(comment_id):
-  comments_col = db.get_database(DB_NAME)[COL_COMMENTS]
+  comments_col = db.get_database("factify")["comments"]
   comment = comments_col.find_one({"_id": ObjectId(comment_id)})
   
   if not comment:
@@ -210,7 +273,7 @@ def delete_comment(comment_id):
 
   comments_col.delete_one({"_id": ObjectId(comment_id)})
   
-  db.get_database(DB_NAME)[COL_POSTS].update_one(
+  db.get_database("factify")["posts"].update_one(
     {"_id": ObjectId(comment["post_id"])},
     {"$inc": {"comments_count": -1}}
   )
@@ -226,7 +289,7 @@ def update_comment(comment_id):
   if not new_text:
     raise BadRequest("Comment text cannot be empty.")
     
-  comments_col = db.get_database(DB_NAME)[COL_COMMENTS]
+  comments_col = db.get_database("factify")["comments"]
   comment = comments_col.find_one({"_id": ObjectId(comment_id)})
   
   if not comment:

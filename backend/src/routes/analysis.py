@@ -4,13 +4,13 @@ from werkzeug.exceptions import BadRequest, InternalServerError
 from keycloak_client import require_auth
 from common.python.text_extractor import extract_text
 from common.python import db
-from config import DB_NAME, COL_CRON_TASKS, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_MANIPULATION, COL_ANALYSIS_SOURCES
 
 from bson.objectid import ObjectId
+from datetime import datetime
 
 analysis = Blueprint("analysis", __name__)
 
-# Podział odpowiednio na analize tekstową i obrazową, manipulacje i wyszukiwanie źródeł????
+
 def extract_request_text():
     if "file" in request.files:
         file = request.files["file"]
@@ -35,7 +35,7 @@ def create_analysis():
     if not text:
         raise BadRequest("No text or file provided for analysis.")
 
-    result = db.get_database(DB_NAME)[COL_CRON_TASKS].insert_one({
+    result = db.get_database("factify_ai")["cron_tasks"].insert_one({
         "name": "analyze",
         "payload": {
             "text": text,
@@ -53,7 +53,7 @@ def create_analysis():
 @analysis.route("/ai/<task_id>", methods=["GET"])
 @require_auth
 def get_analysis(task_id):
-    task = db.get_database(DB_NAME)[COL_CRON_TASKS].find_one({"_id": ObjectId(task_id)})
+    task = db.get_database("factify_ai")["cron_tasks"].find_one({"_id": ObjectId(task_id)})
 
     if not task:
         return jsonify({
@@ -69,7 +69,7 @@ def get_analysis(task_id):
             "message": "Task is not completed yet."
         })
 
-    analysis_data = db.get_database(DB_NAME)[COL_ANALYSIS_AI_TEXT].find_one({"_id": analysis_id})
+    analysis_data = db.get_database("factify_ai")["analysis"].find_one({"_id": analysis_id})
 
     if not analysis_data:
         return jsonify({
@@ -98,8 +98,8 @@ def get_ai_predictions():
         raise BadRequest("User not authenticated")
 
     try:
-        database = db.get_database(DB_NAME)
-        collection = database[COL_ANALYSIS_AI_TEXT]
+        database = db.get_database("factify_ai")
+        collection = database["analysis"]
 
         cursor = collection.find({"user_id": user_id}).sort("_id", -1)
 
@@ -149,7 +149,7 @@ def create_manipulation_analysis():
     if not text:
         raise BadRequest("No text or file provided for analysis.")
 
-    result = db.get_database(DB_NAME)[COL_CRON_TASKS].insert_one({
+    result = db.get_database("factify_ai")["cron_tasks"].insert_one({
         "name": "analyze_manipulation",
         "payload": {
             "text": text,
@@ -167,7 +167,7 @@ def create_manipulation_analysis():
 @analysis.route("/manipulation/<task_id>", methods=["GET"])
 @require_auth
 def get_manipulation_analysis(task_id):
-    task = db.get_database(DB_NAME)[COL_CRON_TASKS].find_one({"_id": ObjectId(task_id)})
+    task = db.get_database("factify_ai")["cron_tasks"].find_one({"_id": ObjectId(task_id)})
 
     if not task:
         return jsonify({
@@ -183,7 +183,7 @@ def get_manipulation_analysis(task_id):
             "message": "Task is not completed yet."
         })
 
-    analysis_data = db.get_database(DB_NAME)[COL_ANALYSIS_MANIPULATION].find_one({"_id": analysis_id})
+    analysis_data = db.get_database("factify_ai")["analysis_manipulation"].find_one({"_id": analysis_id})
 
     if not analysis_data:
         return jsonify({
@@ -210,8 +210,8 @@ def get_manipulation_predictions():
         raise BadRequest("User not authenticated")
 
     try:
-        database = db.get_database(DB_NAME)
-        collection = database[COL_ANALYSIS_MANIPULATION]
+        database = db.get_database("factify_ai")
+        collection = database["analysis_manipulation"]
 
         cursor = collection.find({"user_id": user_id}).sort("_id", -1)
 
@@ -247,8 +247,8 @@ def get_find_sources_predictions():
         raise BadRequest("User not authenticated")
 
     try:
-        database = db.get_database(DB_NAME)
-        collection = database[COL_ANALYSIS_SOURCES]
+        database = db.get_database("factify_ai")
+        collection = database["find_sources"]
 
         cursor = collection.find({"user_id": user_id}).sort("_id", -1)
 
@@ -283,7 +283,7 @@ def create_find_sources_analisys():
     if not text:
         raise BadRequest("No text or file provided for analysis.")
 
-    result = db.get_database(DB_NAME)[COL_CRON_TASKS].insert_one({
+    result = db.get_database("factify_ai")["cron_tasks"].insert_one({
         "name": "find_sources",
         "payload": {
             "text": text,
@@ -301,7 +301,7 @@ def create_find_sources_analisys():
 @analysis.route("/find_sources/<task_id>", methods=["GET"])
 @require_auth
 def get_find_sources_analysis(task_id):
-    task = db.get_database(DB_NAME)[COL_CRON_TASKS].find_one({"_id": ObjectId(task_id)})
+    task = db.get_database("factify_ai")["cron_tasks"].find_one({"_id": ObjectId(task_id)})
 
     if not task:
         return jsonify({
@@ -317,7 +317,7 @@ def get_find_sources_analysis(task_id):
             "message": "Task is not completed yet."
         })
 
-    analysis_data = db.get_database(DB_NAME)[COL_ANALYSIS_SOURCES].find_one({"_id": analysis_id})
+    analysis_data = db.get_database("factify_ai")["find_sources"].find_one({"_id": analysis_id})
 
     if not analysis_data:
         return jsonify({

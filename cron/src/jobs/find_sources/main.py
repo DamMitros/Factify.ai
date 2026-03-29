@@ -2,7 +2,7 @@ import json
 
 from context import TaskContext
 from types_ import TaskPayload
-from config import DB_NAME, COL_ANALYSIS_SOURCES
+
 
 def task(payload: TaskPayload, ctx: TaskContext):
     text = payload["text"]
@@ -53,8 +53,8 @@ The JSON must be an array of objects. Each object must contain:
     print(f"[find_sources] LLM response:")
     print(json.dumps(response_json, indent=4))
 
-    database = ctx.db.get_database(DB_NAME)
-    collection = database[COL_ANALYSIS_SOURCES]
+    database = ctx.db.get_database("factify_ai")
+    collection = database["find_sources"]
     doc = {
         "text": text,
         "result": response_json,

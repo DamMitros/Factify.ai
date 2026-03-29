@@ -13,12 +13,11 @@ from common.python import db
 from common.python.llm import LLM
 from context import TaskContext
 from types_ import TaskPayload
-from config import DB_NAME, COL_CRON_TASKS
 
 TaskHandlerFunction = Callable[[TaskPayload, TaskContext], Any]
 
-DB_NAME = os.getenv("MONGODB_DB", DB_NAME)
-TASKS_COLLECTION = COL_CRON_TASKS
+DB_NAME = os.getenv("MONGODB_DB", "factify_ai")
+TASKS_COLLECTION = "cron_tasks"
 POLL_INTERVAL_SEC = float(os.getenv("CRON_POLL_INTERVAL_SEC", "2"))
 
 handlers_cache = {}

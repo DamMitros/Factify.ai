@@ -2,7 +2,8 @@ from flask import Blueprint, jsonify,g, request
 from keycloak_client import require_auth
 from datetime import datetime
 from common.python.db import get_database
-from config import DB_NAME, COL_USERS
+
+
 
 user_bp = Blueprint("user", __name__)
 
@@ -25,7 +26,7 @@ def get_user_data():
 def register_user_in_mongodb():
     try:
 
-        users_collection = get_database(DB_NAME)[COL_USERS]
+        users_collection = get_database("factify_ai")["users"]
 
         keycloak_id = g.user.get("sub")
 

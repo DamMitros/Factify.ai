@@ -57,48 +57,18 @@ export default function PhotoAnalyzer(): JSX.Element {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const initialData = await response.json();
+      const data = (await response.json()) as ImageDetectResult;
+      setResult(data);
 
-      if (initialData.success && initialData.taskId) {
-        let taskCompleted = false;
-        let attempts = 0;
-        const maxAttempts = 30;
-
-        while (!taskCompleted && attempts < maxAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-          attempts++;
-
-          const pollResponse = await fetch(`${API_BASE_URL}/image/detect/${initialData.taskId}`, { 
-            headers 
-          });
-          
-          if (!pollResponse.ok) {
-            throw new Error(`HTTP ${pollResponse.status}: ${pollResponse.statusText}`);
+      // Update preview image only after successful analysis
+      if (selectedFile) {
+        setAnalyzedImageUrl((prev) => {
+          if (prev) {
+            URL.revokeObjectURL(prev);
           }
-
-          const pollData = await pollResponse.json();
-
-          if (pollData.success && pollData.predictions) {
-            setResult(pollData as ImageDetectResult);
-            taskCompleted = true;
-
-            if (selectedFile) {
-              setAnalyzedImageUrl((prev) => {
-                if (prev) {
-                  URL.revokeObjectURL(prev);
-                }
-                return URL.createObjectURL(selectedFile);
-              });
-            }
-          } else if (!pollData.success && pollData.message === "Task not found.") {
-            throw new Error("Task not found. It may have failed or been removed from the database.");
-          }
-        }
-
-        if (!taskCompleted) {
-          throw new Error("Analysis timed out. Please try again.");
-        }
-      } 
+          return URL.createObjectURL(selectedFile);
+        });
+      }
     } catch (err: any) {
       handleApiError(err, "Image analysis failed:");
     } finally {

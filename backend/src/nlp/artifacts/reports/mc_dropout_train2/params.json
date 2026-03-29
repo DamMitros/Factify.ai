@@ -1,0 +1,25 @@
+{
+  "run_name": "mc_dropout_train2",
+  "model_name": "roberta-base",
+  "num_labels": 2,
+  "hyperparameters": {
+    "epochs": 5,
+    "batch_size": 4,
+    "learning_rate": 2e-05,
+    "weight_decay": 0.01,
+    "warmup_ratio": 0.1,
+    "max_length": 128,
+    "calibration_size": 0.1,
+    "mc_dropout_enabled": true,
+    "mc_dropout_passes": 16
+  },
+  "data": {
+    "path": "/home/dmitros/factify/Factify.ai/backend/src/nlp/data/Training_Essay_Data.csv",
+    "test_size": 0.2,
+    "random_state": 42
+  },
+  "seeds": {
+    "training": 42,
+    "mc_dropout": 42
+  }
+}
