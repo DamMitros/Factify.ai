@@ -1,13 +1,15 @@
 FROM python:3.10-slim AS base
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
-COPY common/python/requirements.txt .
+COPY pyproject.toml uv.lock ./
 
-RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+ENV UV_PROJECT_ENVIRONMENT="/opt/venv"
+RUN uv sync --group cron --no-install-project --no-default-groups
+ENV PATH="/opt/venv/bin:$PATH"
 
 RUN mkdir /modules
 ENV PYTHONPATH=/modules
@@ -15,7 +17,7 @@ ENV PYTHONPATH=/modules
 FROM base AS dev
 WORKDIR /app
 
-CMD ["python", "main.py"]
+CMD ["uv", "run", "main.py"]
 
 FROM base AS prod
 WORKDIR /app
@@ -23,6 +25,6 @@ WORKDIR /app
 COPY cron/src/ .
 COPY common ./modules/common
 
-RUN python nlp/utils/download_base_model.py
+RUN python jobs/analyze/nlp/utils/download_base_model.py
 
-CMD ["python", "main.py"]
+CMD ["uv", "run", "main.py"]
