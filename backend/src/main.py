@@ -1,7 +1,7 @@
 from flask import Flask, Blueprint
 from flask_cors import CORS
 
-from routes import example_bp, user_bp, admin_bp, analysis, social_bp, image_bp
+from routes import example_bp, user_bp, admin_bp, social_bp, image_bp, manipulation_bp, find_sources_bp, ai_text_bp
 from common.python import db
 
 import config
@@ -20,7 +20,9 @@ def register_route(path: str, blueprint: Blueprint):
 register_route("/example", example_bp)
 register_route("/user", user_bp)
 register_route("/image", image_bp)  
-register_route("/analysis", analysis)
+register_route("/analysis/manipulation", manipulation_bp)
+register_route("/analysis/find_sources", find_sources_bp)
+register_route("/analysis/ai", ai_text_bp)
 register_route("/admin", admin_bp)
 register_route("/social", social_bp)
 
