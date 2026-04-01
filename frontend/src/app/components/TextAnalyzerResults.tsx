@@ -39,7 +39,7 @@ export default function TextAnalyzerResults({ result }: TextAnalyzerResultsProps
       <h3 className="text-analyzer-results-title">Analysis Results</h3>
       <div className="text-analyzer-results">
         <p><strong>AI Probability:</strong> {result.ai_probability}%</p>
-        <p><strong>Human Probability:</strong> {result.human_probability}%</p>
+        <p><strong>Human Probability:</strong> {100 - result.ai_probability}%</p>
 
         {highlightedContent && (
           <div className="highlighted-text-block">

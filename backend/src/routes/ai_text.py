@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, g, current_app
 from werkzeug.exceptions import BadRequest, InternalServerError
 from bson import ObjectId
 
-from keycloak_client import require_auth
+from keycloak_client import require_auth, role_required
 from common.python import db
 from config import DB_NAME, COL_CRON_TASKS, COL_ANALYSIS_AI_TEXT
 from utils import extract_request_text
@@ -121,3 +121,62 @@ def get_ai_predictions():
     except Exception as e:
         current_app.logger.exception("Failed to fetch AI analyses for user %s: %s", user_id, e)
         raise InternalServerError("Failed to fetch AI analyses")
+    
+@ai_text_bp.route("/predictions/<user_id>", methods=["GET"])
+@role_required('admin')
+def get_ai_predictions_for_user(user_id):
+    try:
+        database = db.get_database(DB_NAME)
+        collection = database[COL_ANALYSIS_AI_TEXT]
+
+        cursor = collection.find({"user_id": user_id}).sort("_id", -1)
+
+        results = [
+            {
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "ai_probability": doc.get("ai_probability"),
+                "human_probability": 100 - doc.get("ai_probability", 0),
+                "created_at": doc.get("timestamp"),
+                "segments": doc.get("segments"),
+                "overall": doc.get("overall"),
+                "confidence": doc.get("overall", {}).get("confidence"),
+                "type": "text",
+            }
+            for doc in cursor
+        ]
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch AI analyses for user %s: %s", user_id, e)
+        raise InternalServerError("Failed to fetch AI analyses")
+    
+@ai_text_bp.route("/predictions/all_users", methods=["GET"])
+@role_required('admin')
+def get_ai_predictions_all_users():
+    try:
+        database = db.get_database(DB_NAME)
+        collection = database[COL_ANALYSIS_AI_TEXT]
+
+        cursor = collection.find().sort("_id", -1)
+
+        results = [
+            {
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "ai_probability": doc.get("ai_probability"),
+                "human_probability": 100 - doc.get("ai_probability", 0),
+                "created_at": doc.get("timestamp"),
+                "segments": doc.get("segments"),
+                "overall": doc.get("overall"),
+                "confidence": doc.get("overall", {}).get("confidence"),
+                "type": "text",
+            }
+            for doc in cursor
+        ]
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch AI analyses for all users: %s", e)
+        raise InternalServerError("Failed to fetch AI analyses")
+    

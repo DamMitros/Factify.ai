@@ -3,7 +3,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, send_file, request
 from keycloak_client import role_required, get_keycloak_admin
 from common.python import db
-from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_USERS
+from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_ANALYSIS_MANIPULATION, COL_ANALYSIS_SOURCES, COL_USERS
 
 admin_bp = Blueprint('admin', __name__)
 NLP_REPORTS_DIR = os.path.join(os.getcwd(), "nlp", "artifacts", "reports")
@@ -21,6 +21,8 @@ def get_system_stats():
         "users": database[COL_USERS].count_documents({}),
         "text_analyses": database[COL_ANALYSIS_AI_TEXT].count_documents({}),
         "image_analyses": database[COL_ANALYSIS_AI_IMAGE].count_documents({}),
+        "manipulation_analyses": database[COL_ANALYSIS_MANIPULATION].count_documents({}),
+        "source_analyses": database[COL_ANALYSIS_SOURCES].count_documents({}),
         "status": "Healthy"
     })
 
@@ -30,7 +32,7 @@ def get_all_users():
     database = db.get_client().get_database(DB_NAME)
     users = list(database[COL_USERS].find({}, {"_id": 0, "password": 0, "secret": 0}))
     return jsonify(users)
-
+### A JAKBY TE DWA ENDPOINTY ZŁĄCZYĆ W JEDEN DUŻY?????????????????????????????
 @admin_bp.route('/users/sync', methods=['POST'])
 @role_required('admin')
 def sync_users():
@@ -84,24 +86,9 @@ def block_user(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@admin_bp.route('/users/<user_id>/history', methods=['GET'])
-@role_required('admin')
-def get_user_history(user_id):
-    database = db.get_client().get_database(DB_NAME)
-    history = list(
-        database[COL_ANALYSIS_AI_TEXT]
-        .find({"user_id": user_id})
-        .sort("timestamp", -1)
-        .limit(20)
-    )
-    for h in history:
-        h["_id"] = str(h["_id"])
-    return jsonify(history)
-
-
 @admin_bp.route('/users/<email>', methods=['DELETE'])
 @role_required('admin')
-def delete_user(email):
+def delete_user(email): #CZEMU USER jest usuwany po mailu, czemu nie jest usuwany user z keycloak
     database = db.get_client().get_database(DB_NAME)
     result = database[COL_USERS].delete_one({"email": email})
     return (
@@ -111,6 +98,23 @@ def delete_user(email):
         jsonify({"error": "User not found"}),
         404
     )
+
+# ENDPOINTY PONIZEJ NIE DZIALAJA LUB ZOSTAŁY STWORZONE NOWE ZAMIENNIKI
+
+@admin_bp.route('/image/metrics', methods=['GET'])
+@role_required('admin')
+def get_image_metrics():
+    path = os.path.join(IMAGE_REPORTS_DIR, "classification_report_best.json")
+    return jsonify(json.load(open(path))) if os.path.exists(path) \
+        else (jsonify({"error": "Image metrics not found"}), 404)
+
+
+@admin_bp.route('/image/confusion_matrix', methods=['GET'])
+@role_required('admin')
+def get_image_confusion_matrix():
+    path = os.path.join(IMAGE_REPORTS_DIR, "confusion_matrix_best.png")
+    return send_file(path, mimetype="image/png") if os.path.exists(path) \
+        else (jsonify({"error": "Confusion matrix not found"}), 404)
 
 @admin_bp.route('/nlp/reports', methods=['GET'])
 @role_required('admin')
@@ -156,36 +160,34 @@ def get_nlp_failures():
     df = pd.read_csv(path).where(pd.notnull, None)
     return jsonify(df.to_dict(orient="records"))
 
-@admin_bp.route('/image/logs', methods=['GET'])
-@role_required('admin')
-def get_image_logs():
-    database = db.get_client().get_database(DB_NAME)
-    logs = list(database[COL_ANALYSIS_AI_IMAGE].find().sort("timestamp", -1).limit(50))
-    for l in logs:
-        l["_id"] = str(l["_id"])
-    return jsonify(logs)
+# @admin_bp.route('/image/logs', methods=['GET'])
+# @role_required('admin')
+# def get_image_logs():
+#     database = db.get_client().get_database(DB_NAME)
+#     logs = list(database[COL_ANALYSIS_AI_IMAGE].find().sort("timestamp", -1).limit(50))
+#     for l in logs:
+#         l["_id"] = str(l["_id"])
+#     return jsonify(logs)
 
+# @admin_bp.route('/users/<user_id>/history', methods=['GET'])
+# @role_required('admin')
+# def get_user_history(user_id):
+#     database = db.get_client().get_database(DB_NAME)
+#     history = list(
+#         database[COL_ANALYSIS_AI_TEXT]
+#         .find({"user_id": user_id})
+#         .sort("timestamp", -1)
+#         .limit(20)
+#     )
+#     for h in history:
+#         h["_id"] = str(h["_id"])
+#     return jsonify(history)
 
-@admin_bp.route('/image/metrics', methods=['GET'])
-@role_required('admin')
-def get_image_metrics():
-    path = os.path.join(IMAGE_REPORTS_DIR, "classification_report_best.json")
-    return jsonify(json.load(open(path))) if os.path.exists(path) \
-        else (jsonify({"error": "Image metrics not found"}), 404)
-
-
-@admin_bp.route('/image/confusion_matrix', methods=['GET'])
-@role_required('admin')
-def get_image_confusion_matrix():
-    path = os.path.join(IMAGE_REPORTS_DIR, "confusion_matrix_best.png")
-    return send_file(path, mimetype="image/png") if os.path.exists(path) \
-        else (jsonify({"error": "Confusion matrix not found"}), 404)
-
-@admin_bp.route('/logs', methods=['GET'])
-@role_required('admin')
-def get_logs():
-    database = db.get_client().get_database(DB_NAME)
-    logs = list(database[COL_ANALYSIS_AI_TEXT].find().sort("timestamp", -1).limit(50))
-    for l in logs:
-        l["_id"] = str(l["_id"])
-    return jsonify(logs)
+# @admin_bp.route('/logs', methods=['GET'])
+# @role_required('admin')
+# def get_logs():
+#     database = db.get_client().get_database(DB_NAME)
+#     logs = list(database[COL_ANALYSIS_AI_TEXT].find().sort("timestamp", -1).limit(50))
+#     for l in logs:
+#         l["_id"] = str(l["_id"])
+#     return jsonify(logs)

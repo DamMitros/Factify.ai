@@ -24,7 +24,7 @@ const SystemLogs: React.FC = () => {
     const fetchLogs = async () => {
       if (!keycloak?.token) return;
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/logs`, {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/analysis/ai/predictions/all_users`, {
           headers: { Authorization: `Bearer ${keycloak.token}` },
         });
         setLogs(response.data);

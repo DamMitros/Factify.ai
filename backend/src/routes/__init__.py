@@ -1,4 +1,3 @@
-from .example import example_bp
 from .user import user_bp
 from .image import image_bp
 from .manipulation import manipulation_bp

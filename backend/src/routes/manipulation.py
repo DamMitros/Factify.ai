@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, g, current_app
 from werkzeug.exceptions import BadRequest, InternalServerError
 from bson import ObjectId
 
-from keycloak_client import require_auth
+from keycloak_client import require_auth, role_required
 from common.python import db
 from config import DB_NAME, COL_CRON_TASKS, COL_ANALYSIS_MANIPULATION
 from utils import extract_request_text
@@ -104,3 +104,66 @@ def get_manipulation_predictions():
     except Exception as e:
         current_app.logger.exception("Failed to fetch manipulation analyses for user %s: %s", user_id, e)
         raise InternalServerError("Failed to fetch manipulation analyses")
+
+@manipulation_bp.route("/predictions/<user_id>", methods=["GET"])
+@role_required("admin")
+def get_manipulation_predictions_for_user(user_id):
+    try:
+        database = db.get_database(DB_NAME)
+        collection = database[COL_ANALYSIS_MANIPULATION]
+
+        cursor = collection.find({"user_id": user_id}).sort("_id", -1)
+
+        results = []
+        for doc in cursor:
+            created_at = (
+                doc.get("timestamp")
+                or doc.get("created_at")
+                or getattr(doc.get("_id"), "generation_time", None)
+            )
+
+            results.append({
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "result": doc.get("result"),
+                "user_id": doc.get("user_id"),
+                "created_at": created_at,
+                "type": "manipulation",
+            })
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch manipulation analyses for user %s: %s", user_id, e)
+        raise InternalServerError("Failed to fetch manipulation analyses")
+    
+@manipulation_bp.route("/predictions/all_users", methods=["GET"])
+@role_required("admin")
+def get_manipulation_predictions_all_users():
+    try:
+        database = db.get_database(DB_NAME)
+        collection = database[COL_ANALYSIS_MANIPULATION]
+
+        cursor = collection.find().sort("_id", -1)
+
+        results = []
+        for doc in cursor:
+            created_at = (
+                doc.get("timestamp")
+                or doc.get("created_at")
+                or getattr(doc.get("_id"), "generation_time", None)
+            )
+
+            results.append({
+                "id": str(doc.get("_id")),
+                "text": doc.get("text"),
+                "result": doc.get("result"),
+                "user_id": doc.get("user_id"),
+                "created_at": created_at,
+                "type": "manipulation",
+            })
+
+        return jsonify(results)
+    except Exception as e:
+        current_app.logger.exception("Failed to fetch manipulation analyses for all users: %s", e)
+        raise InternalServerError("Failed to fetch manipulation analyses for all users")
+    

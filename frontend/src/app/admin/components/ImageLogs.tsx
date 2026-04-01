@@ -27,7 +27,7 @@ const ImageLogs: React.FC = () => {
     const fetchLogs = async () => {
       if (!keycloak?.token) return;
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/image/logs`, {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/image/predictions/all_users`, {
           headers: { Authorization: `Bearer ${keycloak.token}` },
         });
         setLogs(response.data);
