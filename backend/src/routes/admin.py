@@ -3,40 +3,44 @@ from datetime import datetime
 from flask import Blueprint, jsonify, send_file, request
 from keycloak_client import role_required, get_keycloak_admin
 from common.python import db
+from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_ANALYSIS_MANIPULATION, COL_ANALYSIS_SOURCES, COL_USERS
 
 admin_bp = Blueprint('admin', __name__)
 NLP_REPORTS_DIR = os.path.join(os.getcwd(), "nlp", "artifacts", "reports")
 IMAGE_REPORTS_DIR = os.path.join(os.getcwd(), "image_detection", "artifacts", "reports")
 
+#Trzeba tutaj zrobić źródła i manipulacje
+# NLP I IMAGE DIRY nie bedą działać bo są wywalone do crona 
+# Trzeba będzie stworzyć system dodawania ich do bazy danych albo zapis tak aby byl dostep z crona i backendu imo opcja 1
 @admin_bp.route('/stats', methods=['GET'])
 @role_required('admin')
 def get_system_stats():
-    client = db.get_client()
-    db_main = client.get_database("factify_ai")
-    db_img = client.get_database("factify")
+    database = db.get_client().get_database(DB_NAME)
 
     return jsonify({
-        "users": db_main.users.count_documents({}),
-        "text_analyses": db_main.text_analysis_logs.count_documents({}),
-        "image_analyses": db_img.image_analysis.count_documents({}),
+        "users": database[COL_USERS].count_documents({}),
+        "text_analyses": database[COL_ANALYSIS_AI_TEXT].count_documents({}),
+        "image_analyses": database[COL_ANALYSIS_AI_IMAGE].count_documents({}),
+        "manipulation_analyses": database[COL_ANALYSIS_MANIPULATION].count_documents({}),
+        "source_analyses": database[COL_ANALYSIS_SOURCES].count_documents({}),
         "status": "Healthy"
     })
 
 @admin_bp.route('/users', methods=['GET'])
 @role_required('admin')
 def get_all_users():
-    database = db.get_client().get_database("factify_ai")
-    users = list(database.users.find({}, {"_id": 0, "password": 0, "secret": 0}))
+    database = db.get_client().get_database(DB_NAME)
+    users = list(database[COL_USERS].find({}, {"_id": 0, "password": 0, "secret": 0}))
     return jsonify(users)
-
+### A JAKBY TE DWA ENDPOINTY ZŁĄCZYĆ W JEDEN DUŻY?????????????????????????????
 @admin_bp.route('/users/sync', methods=['POST'])
 @role_required('admin')
 def sync_users():
     try:
         kc_admin = get_keycloak_admin()
         kc_users = kc_admin.get_users({})
-        database = db.get_client().get_database("factify_ai")
-        users_collection = database.users
+        database = db.get_client().get_database(DB_NAME)
+        users_collection = database[COL_USERS]
 
         synced = 0
         for kc_user in kc_users:
@@ -73,7 +77,7 @@ def block_user(user_id):
         kc_admin = get_keycloak_admin()
         kc_admin.update_user(user_id=user_id, payload={"enabled": enabled})
 
-        db.get_client().get_database("factify_ai").users.update_one(
+        db.get_client().get_database(DB_NAME)[COL_USERS].update_one(
             {"keycloakId": user_id},
             {"$set": {"enabled": enabled, "updatedAt": datetime.utcnow()}}
         )
@@ -82,26 +86,11 @@ def block_user(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@admin_bp.route('/users/<user_id>/history', methods=['GET'])
-@role_required('admin')
-def get_user_history(user_id):
-    database = db.get_client().get_database("factify_ai")
-    history = list(
-        database.text_analysis_logs
-        .find({"user_id": user_id})
-        .sort("timestamp", -1)
-        .limit(20)
-    )
-    for h in history:
-        h["_id"] = str(h["_id"])
-    return jsonify(history)
-
-
 @admin_bp.route('/users/<email>', methods=['DELETE'])
 @role_required('admin')
-def delete_user(email):
-    db_main = db.get_client().get_database("factify_ai")
-    result = db_main.users.delete_one({"email": email})
+def delete_user(email): #CZEMU USER jest usuwany po mailu, czemu nie jest usuwany user z keycloak
+    database = db.get_client().get_database(DB_NAME)
+    result = database[COL_USERS].delete_one({"email": email})
     return (
         jsonify({"message": "User deleted"}),
         200
@@ -109,6 +98,23 @@ def delete_user(email):
         jsonify({"error": "User not found"}),
         404
     )
+
+# ENDPOINTY PONIZEJ NIE DZIALAJA LUB ZOSTAŁY STWORZONE NOWE ZAMIENNIKI
+
+@admin_bp.route('/image/metrics', methods=['GET'])
+@role_required('admin')
+def get_image_metrics():
+    path = os.path.join(IMAGE_REPORTS_DIR, "classification_report_best.json")
+    return jsonify(json.load(open(path))) if os.path.exists(path) \
+        else (jsonify({"error": "Image metrics not found"}), 404)
+
+
+@admin_bp.route('/image/confusion_matrix', methods=['GET'])
+@role_required('admin')
+def get_image_confusion_matrix():
+    path = os.path.join(IMAGE_REPORTS_DIR, "confusion_matrix_best.png")
+    return send_file(path, mimetype="image/png") if os.path.exists(path) \
+        else (jsonify({"error": "Confusion matrix not found"}), 404)
 
 @admin_bp.route('/nlp/reports', methods=['GET'])
 @role_required('admin')
@@ -154,36 +160,34 @@ def get_nlp_failures():
     df = pd.read_csv(path).where(pd.notnull, None)
     return jsonify(df.to_dict(orient="records"))
 
-@admin_bp.route('/image/logs', methods=['GET'])
-@role_required('admin')
-def get_image_logs():
-    db_img = db.get_client().get_database("factify")
-    logs = list(db_img.image_analysis.find().sort("timestamp", -1).limit(50))
-    for l in logs:
-        l["_id"] = str(l["_id"])
-    return jsonify(logs)
+# @admin_bp.route('/image/logs', methods=['GET'])
+# @role_required('admin')
+# def get_image_logs():
+#     database = db.get_client().get_database(DB_NAME)
+#     logs = list(database[COL_ANALYSIS_AI_IMAGE].find().sort("timestamp", -1).limit(50))
+#     for l in logs:
+#         l["_id"] = str(l["_id"])
+#     return jsonify(logs)
 
+# @admin_bp.route('/users/<user_id>/history', methods=['GET'])
+# @role_required('admin')
+# def get_user_history(user_id):
+#     database = db.get_client().get_database(DB_NAME)
+#     history = list(
+#         database[COL_ANALYSIS_AI_TEXT]
+#         .find({"user_id": user_id})
+#         .sort("timestamp", -1)
+#         .limit(20)
+#     )
+#     for h in history:
+#         h["_id"] = str(h["_id"])
+#     return jsonify(history)
 
-@admin_bp.route('/image/metrics', methods=['GET'])
-@role_required('admin')
-def get_image_metrics():
-    path = os.path.join(IMAGE_REPORTS_DIR, "classification_report_best.json")
-    return jsonify(json.load(open(path))) if os.path.exists(path) \
-        else (jsonify({"error": "Image metrics not found"}), 404)
-
-
-@admin_bp.route('/image/confusion_matrix', methods=['GET'])
-@role_required('admin')
-def get_image_confusion_matrix():
-    path = os.path.join(IMAGE_REPORTS_DIR, "confusion_matrix_best.png")
-    return send_file(path, mimetype="image/png") if os.path.exists(path) \
-        else (jsonify({"error": "Confusion matrix not found"}), 404)
-
-@admin_bp.route('/logs', methods=['GET'])
-@role_required('admin')
-def get_logs():
-    db_main = db.get_client().get_database("factify_ai")
-    logs = list(db_main.text_analysis_logs.find().sort("timestamp", -1).limit(50))
-    for l in logs:
-        l["_id"] = str(l["_id"])
-    return jsonify(logs)
+# @admin_bp.route('/logs', methods=['GET'])
+# @role_required('admin')
+# def get_logs():
+#     database = db.get_client().get_database(DB_NAME)
+#     logs = list(database[COL_ANALYSIS_AI_TEXT].find().sort("timestamp", -1).limit(50))
+#     for l in logs:
+#         l["_id"] = str(l["_id"])
+#     return jsonify(logs)

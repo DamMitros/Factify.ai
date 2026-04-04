@@ -54,7 +54,7 @@ export default function TextAnalyzer(): JSX.Element {
             }
 
             const { data: start } = await api.post<StartResponse>(
-                "/analysis/ai",
+                "/analysis/ai/",
                 payload,
                 { requireAuth: authenticated }
             );
@@ -118,7 +118,7 @@ export default function TextAnalyzer(): JSX.Element {
             }
 
             const { data: start } = await api.post<StartResponse>(
-                "/analysis/manipulation",
+                "/analysis/manipulation/",
                 payload,
                 { requireAuth: authenticated }
             );
@@ -182,7 +182,7 @@ export default function TextAnalyzer(): JSX.Element {
             }
 
             const { data: start } = await api.post<StartResponse>(
-                "/analysis/find_sources",
+                "/analysis/find_sources/",
                 payload,
                 { requireAuth: authenticated }
             );
