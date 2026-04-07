@@ -6,11 +6,12 @@ import { useKeycloak } from '../../../auth/KeycloakProviderWrapper';
 import GlassEffect from '../../components/GlassEffect';
 
 interface LogEntry {
-  _id: string;
-  timestamp?: string;
+  id: string;
+  created_at?: string;
   text?: string;
   ai_probability?: number;
   user_id?: string;
+  username?: string;
   [key: string]: any;
 }
 
@@ -61,14 +62,14 @@ const SystemLogs: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-white/5">
             {logs.map((log) => {
-              const isExpanded = expandedItems.has(log._id);
+              const isExpanded = expandedItems.has(log.id); 
               const text = log.text || '';
               const displayText = isExpanded ? text : (text.length > 80 ? text.substring(0, 80) + '...' : text);
 
               return (
-                <tr key={log._id} className="hover:bg-white/5 transition-colors">
+                <tr key={log.id} className="hover:bg-white/5 transition-colors">
                   <td className="px-6 py-4 text-xs font-mono text-gray-500 truncate max-w-[120px]">
-                    {log.user_id || 'Uknown'}
+                    {log.username || log.user_id || 'Deleted user'}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -81,13 +82,13 @@ const SystemLogs: React.FC = () => {
                   <td className="px-6 py-4">
                     <p className="text-xs text-gray-300 leading-relaxed max-w-xs">{displayText}</p>
                     {text.length > 80 && (
-                      <button onClick={() => toggleExpanded(log._id)} className="text-blue-500 text-[10px] mt-1 hover:underline">
+                      <button onClick={() => toggleExpanded(log.id)} className="text-blue-500 text-[10px] mt-1 hover:underline">
                         {isExpanded ? 'Show less' : 'Show more'}
                       </button>
                     )}
                   </td>
                   <td className="px-6 py-4 text-[10px] text-gray-500 whitespace-nowrap">
-                    {log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}
+                    {log.created_at ? new Date(log.created_at).toLocaleString() : '-'}
                   </td>
                 </tr>
               );

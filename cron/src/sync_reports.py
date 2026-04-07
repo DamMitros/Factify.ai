@@ -56,20 +56,23 @@ def sync_image_report(database):
   founded_reports = 0
 
   if os.path.exists(IMAGE_REPORTS_DIR):
+    for report_id in os.listdir(IMAGE_REPORTS_DIR):
+      report_path = os.path.join(IMAGE_REPORTS_DIR, report_id)
 
-    report_data = {
-      "report_id": "best_model_metrics",
-      "metrics": _read_json(os.path.join(IMAGE_REPORTS_DIR, "classification_report_best.json")),
-      "confusion_matrix_base64": _image_to_base64(os.path.join(IMAGE_REPORTS_DIR, "confusion_matrix_best.png")),
-      "last_synced": datetime.utcnow()
-    }
+      if os.path.isdir(report_path):
+        report_data = {
+          "report_id": report_id,
+          "metrics": _read_json(os.path.join(report_path, "classification_report.json")),
+          "confusion_matrix_base64": _image_to_base64(os.path.join(report_path, "confusion_matrix.png")),
+          "last_synced": datetime.utcnow()
+        }
         
-    database[COL_REPORTS_IMAGE].update_one(
-      {"report_id": "best_model_metrics"},
-      {"$set": report_data, "$setOnInsert": {"created_at": datetime.utcnow()}},
-      upsert=True
-    )
-    founded_reports += 1
+        database[COL_REPORTS_IMAGE].update_one(
+          {"report_id": "best_model_metrics"},
+          {"$set": report_data, "$setOnInsert": {"created_at": datetime.utcnow()}},
+          upsert=True
+        )
+        founded_reports += 1
   print(f"[AI IMAGE] In DB used to be {number_of_reports} Image reports, now there are {founded_reports} synced from files.")
 
 def sync_all_reports():

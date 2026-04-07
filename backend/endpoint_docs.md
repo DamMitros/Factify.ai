@@ -122,10 +122,10 @@ Poniżej znajduję się zestawienie głównych endpointów komunikacyjnych w apl
 
 **ADMIN REQUIRED** -> endpointy tylko dla admina
 
-**`GET`** `/feed/<user_id>/posts`
+**`GET`** `/social/feed/<user_id>/posts`
   * **Opis:** Odczytuje wszystkie posty wybranego użytkownika.
 
-**`GET`** `/feed/<user_id>/comments`
+**`GET`** `/social/feed/<user_id>/comments`
   * **Opis:** Odczytuje wszystkie komentarze wybranego użytkownika.
 
 ---
@@ -142,10 +142,30 @@ Poniżej znajduję się zestawienie głównych endpointów komunikacyjnych w apl
   * **Opis:** Zablokowanie użytkownika na Keycloaku i zapis w bazie danych
 
 **`DELETE`** `/admin/users/<email>`
-  * **Opis:** Usunięcie użytkownika z bazy danych (a czemu z Keycloaka nie usuwa???)
+  * **Opis:** Usunięcie użytkownika z bazy danych i Keycloacka
 
-**Tutaj brakuje jeszcze endpointów modeli NLP i Obrazu, bo nie istnieje lub obecnie nie działają:3**
+**`GET`** `/admin/nlp/reports`
+  * **Opis:** Pobiera listę dostępnych raportów szkolenia modelu do analiz tekstu AI
+
+**`GET`** `/admin/nlp/reports/<report_id>`
+  * **Opis:** Pobiera wszystkie dostępne dane z wybranego raportów szkolenia modelu do analiz tekstu AI
+
+**`GET`** `/admin/image/reports`
+  * **Opis:** Pobiera listę dostępnych raportów szkolenia modelu do analiz obrazu AI
+
+**`GET`** `/admin/image/reports/<report_id>`
+  * **Opis:** Pobiera wszystkie dostępne dane z wybranego raportu szkolenia modelu do analiz obrazu AI
 
 --- 
 
-Endpointy z usera chyba nie ma sensu rozpisywac cnie:???
+## User skills (`/user`)
+
+**`GET`** `/user/profile`
+  * **Opis:** Zczytuje base dane o użytkowniku (username, name, dostępne role itd.)
+
+**`PUT`** `/user/register`
+  * **Opis:** Request odpowiadający za aktualizacje danych użytkownika w bazie (oraz jego pierwotne stworzenie)
+
+---
+
+Jeśli jakiekolwiek dane są tutaj błędnie zapisane, to no cóż... tak bywa :3 

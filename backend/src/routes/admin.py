@@ -1,17 +1,11 @@
-import os, json, pandas as pd
 from datetime import datetime
-from flask import Blueprint, jsonify, send_file, request
+from flask import Blueprint, jsonify, request
 from keycloak_client import role_required, get_keycloak_admin
 from common.python import db
-from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_ANALYSIS_MANIPULATION, COL_ANALYSIS_SOURCES, COL_USERS
+from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_ANALYSIS_MANIPULATION, COL_ANALYSIS_SOURCES, COL_USERS, COL_REPORTS_IMAGE, COL_REPORTS_NLP
 
 admin_bp = Blueprint('admin', __name__)
-NLP_REPORTS_DIR = os.path.join(os.getcwd(), "nlp", "artifacts", "reports")
-IMAGE_REPORTS_DIR = os.path.join(os.getcwd(), "image_detection", "artifacts", "reports")
 
-#Trzeba tutaj zrobić źródła i manipulacje
-# NLP I IMAGE DIRY nie bedą działać bo są wywalone do crona 
-# Trzeba będzie stworzyć system dodawania ich do bazy danych albo zapis tak aby byl dostep z crona i backendu imo opcja 1
 @admin_bp.route('/stats', methods=['GET'])
 @role_required('admin')
 def get_system_stats():
@@ -32,43 +26,6 @@ def get_all_users():
     database = db.get_client().get_database(DB_NAME)
     users = list(database[COL_USERS].find({}, {"_id": 0, "password": 0, "secret": 0}))
     return jsonify(users)
-### A JAKBY TE DWA ENDPOINTY ZŁĄCZYĆ W JEDEN DUŻY?????????????????????????????
-#Finalnie jak nie będzie problemów to jest do wyrzucenia, useeffect na froncie poprawiony/nie trzeba laczyc
-# @admin_bp.route('/users/sync', methods=['POST'])
-# @role_required('admin')
-# def sync_users():
-#     try:
-#         kc_admin = get_keycloak_admin()
-#         kc_users = kc_admin.get_users({})
-#         database = db.get_client().get_database(DB_NAME)
-#         users_collection = database[COL_USERS]
-
-#         synced = 0
-#         for kc_user in kc_users:
-#             data = {
-#                 "keycloakId": kc_user.get("id"),
-#                 "username": kc_user.get("username"),
-#                 "email": kc_user.get("email"),
-#                 "firstName": kc_user.get("firstName"),
-#                 "lastName": kc_user.get("lastName"),
-#                 "enabled": kc_user.get("enabled", True),
-#                 "updatedAt": datetime.utcnow()
-#             }
-
-#             result = users_collection.update_one(
-#                 {"keycloakId": kc_user.get("id")},
-#                 {"$set": data, "$setOnInsert": {"createdAt": datetime.utcnow()}},
-#                 upsert=True
-#             )
-#             if result.upserted_id or result.modified_count:
-#                 synced += 1
-
-#         return jsonify({
-#             "message": f"Synced {synced} users from Keycloak",
-#             "total": len(kc_users)
-#         }), 200
-#     except Exception as e:
-#         return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/users/<user_id>/block', methods=['PUT'])
 @role_required('admin')
@@ -105,95 +62,36 @@ def delete_user(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ENDPOINTY PONIZEJ NIE DZIALAJA LUB ZOSTAŁY STWORZONE NOWE ZAMIENNIKI
-
-@admin_bp.route('/image/metrics', methods=['GET'])
-@role_required('admin')
-def get_image_metrics():
-    path = os.path.join(IMAGE_REPORTS_DIR, "classification_report_best.json")
-    return jsonify(json.load(open(path))) if os.path.exists(path) \
-        else (jsonify({"error": "Image metrics not found"}), 404)
-
-
-@admin_bp.route('/image/confusion_matrix', methods=['GET'])
-@role_required('admin')
-def get_image_confusion_matrix():
-    path = os.path.join(IMAGE_REPORTS_DIR, "confusion_matrix_best.png")
-    return send_file(path, mimetype="image/png") if os.path.exists(path) \
-        else (jsonify({"error": "Confusion matrix not found"}), 404)
-
 @admin_bp.route('/nlp/reports', methods=['GET'])
 @role_required('admin')
-def list_nlp_reports():
-    return jsonify([
-        d for d in os.listdir(NLP_REPORTS_DIR)
-        if os.path.isdir(os.path.join(NLP_REPORTS_DIR, d))
-    ]) if os.path.exists(NLP_REPORTS_DIR) else jsonify([])
+def get_nlp_reports():
+    database = db.get_client().get_database(DB_NAME)
+    reports = database[COL_REPORTS_NLP].find({}, {"report_id": 1, "created_at": 1, "_id": 0}).sort("created_at", -1)
+    return jsonify(list(reports))
 
-
-@admin_bp.route('/nlp/metrics', methods=['GET'])
+@admin_bp.route('/nlp/reports/<report_id>', methods=['GET'])
 @role_required('admin')
-def get_nlp_metrics():
-    report_id = request.args.get("report_id")
-    path = os.path.join(NLP_REPORTS_DIR, report_id, "metrics.json") if report_id \
-        else os.path.join(NLP_REPORTS_DIR, "metrics.json")
+def get_full_report(report_id):
+    database = db.get_client().get_database(DB_NAME)
+    report = database[COL_REPORTS_NLP].find_one({"report_id": report_id}, {"_id": 0})
 
-    return jsonify(json.load(open(path))) if os.path.exists(path) \
-        else (jsonify({"error": "Metrics not found"}), 404)
+    if report:
+        return jsonify(report)
+    return jsonify({"error": "Report not found"}), 404
 
-
-@admin_bp.route('/nlp/confusion_matrix', methods=['GET'])
+@admin_bp.route('/image/reports', methods=['GET'])
 @role_required('admin')
-def get_nlp_confusion_matrix():
-    report_id = request.args.get("report_id")
-    path = os.path.join(NLP_REPORTS_DIR, report_id, "confusion_matrix.png") if report_id \
-        else os.path.join(NLP_REPORTS_DIR, "confusion_matrix.png")
+def get_image_reports():
+    database = db.get_client().get_database(DB_NAME)
+    reports = database[COL_REPORTS_IMAGE].find({}, {"report_id": 1, "created_at": 1, "_id": 0}).sort("created_at", -1)
+    return jsonify(list(reports))
 
-    return send_file(path, mimetype="image/png") if os.path.exists(path) \
-        else (jsonify({"error": "Matrix not found"}), 404)
-
-
-@admin_bp.route('/nlp/failures', methods=['GET'])
+@admin_bp.route('/image/reports/<report_id>', methods=['GET'])
 @role_required('admin')
-def get_nlp_failures():
-    report_id = request.args.get("report_id")
-    path = os.path.join(NLP_REPORTS_DIR, report_id, "fails.csv") if report_id \
-        else os.path.join(NLP_REPORTS_DIR, "mc_dropout_train2", "fails.csv")
+def get_full_image_report(report_id):
+    database = db.get_client().get_database(DB_NAME)
+    report = database[COL_REPORTS_IMAGE].find_one({"report_id": report_id}, {"_id": 0})
 
-    if not os.path.exists(path):
-        return jsonify({"error": "Failures not found"}), 404
-
-    df = pd.read_csv(path).where(pd.notnull, None)
-    return jsonify(df.to_dict(orient="records"))
-
-# @admin_bp.route('/image/logs', methods=['GET'])
-# @role_required('admin')
-# def get_image_logs():
-#     database = db.get_client().get_database(DB_NAME)
-#     logs = list(database[COL_ANALYSIS_AI_IMAGE].find().sort("timestamp", -1).limit(50))
-#     for l in logs:
-#         l["_id"] = str(l["_id"])
-#     return jsonify(logs)
-
-# @admin_bp.route('/users/<user_id>/history', methods=['GET'])
-# @role_required('admin')
-# def get_user_history(user_id):
-#     database = db.get_client().get_database(DB_NAME)
-#     history = list(
-#         database[COL_ANALYSIS_AI_TEXT]
-#         .find({"user_id": user_id})
-#         .sort("timestamp", -1)
-#         .limit(20)
-#     )
-#     for h in history:
-#         h["_id"] = str(h["_id"])
-#     return jsonify(history)
-
-# @admin_bp.route('/logs', methods=['GET'])
-# @role_required('admin')
-# def get_logs():
-#     database = db.get_client().get_database(DB_NAME)
-#     logs = list(database[COL_ANALYSIS_AI_TEXT].find().sort("timestamp", -1).limit(50))
-#     for l in logs:
-#         l["_id"] = str(l["_id"])
-#     return jsonify(logs)
+    if report:
+        return jsonify(report)
+    return jsonify({"error": "Report not found"}), 404

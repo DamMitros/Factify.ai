@@ -6,12 +6,13 @@ import { useKeycloak } from '../../../auth/KeycloakProviderWrapper';
 import GlassEffect from '../../components/GlassEffect';
 
 interface ImageLogEntry {
-  _id: string;
-  timestamp?: string;
+  id: string;
+  created_at?: string;
   filename?: string;
   image_preview?: string;
   ai_probability?: number;
   user_id?: string;
+  username?: string;
   overall?: {
     label: string;
     confidence: number;
@@ -64,15 +65,12 @@ const ImageLogs: React.FC = () => {
               const isAI = label === 'AI';
               
               return (
-                <tr key={log._id} className="hover:bg-white/5 transition-colors group">
+                <tr key={log.id} className="hover:bg-white/5 transition-colors group">
                   <td className="px-6 py-4">
                     <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-white/10 bg-black/40 group-hover:border-white/30 transition-all">
                       {log.image_preview ? (
                         <>
                           <img src={log.image_preview} alt="Analysed" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                          {/* <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                             <img src={log.image_preview} alt="Zoom" className="hidden group-hover:block fixed z-[100] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 object-contain rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border-4 border-white/20" />
-                          </div> */}
                         </>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-600 font-bold uppercase tracking-tighter">None</div>
@@ -80,10 +78,10 @@ const ImageLogs: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-[11px] text-gray-400 whitespace-nowrap font-mono">
-                    {log.timestamp ? new Date(log.timestamp).toLocaleString() : '-'}
+                    {log.created_at ? new Date(log.created_at).toLocaleString() : '-'}
                   </td>
                   <td className="px-6 py-4 text-xs font-mono text-gray-500 truncate max-w-[120px]">
-                    {log.user_id || 'Anonymous'}
+                    {log.username || log.user_id || 'Anonymous'}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-col gap-1">

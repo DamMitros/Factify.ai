@@ -5,116 +5,100 @@ import axios from 'axios';
 import { useKeycloak } from '../../../auth/KeycloakProviderWrapper';
 import GlassEffect from '../../components/GlassEffect';
 
+interface ReportItem {
+  report_id: string;
+  created_at?: string;
+}
+
 const ImageMonitoring: React.FC = () => {
   const { keycloak } = useKeycloak();
-  const [metrics, setMetrics] = useState<any | null>(null);
-  const [confusionMatrixUrl, setConfusionMatrixUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>('best_model');
-  const availableModels = ['best_model'];
+  const [reportList, setReportList] = useState<ReportItem[]>([]);
+  const [selectedId, setSelectedId] = useState<string>('');
+  const [fullReport, setFullReport] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!keycloak?.token) return;
-      setLoading(true);
-      const headers = { Authorization: `Bearer ${keycloak.token}` };
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+    if (!keycloak?.token) return;
+    
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/image/reports`, {
+      headers: { Authorization: `Bearer ${keycloak.token}` }
+    })
+    .then(res => {
+      setReportList(res.data);
+      if (res.data.length > 0) setSelectedId(res.data[0].report_id);
+    })
+    .catch(err => console.error("Error fetching Image reports list:", err));
+  }, [keycloak?.token]);
 
-      try {
-        const [metricsRes, matrixRes] = await Promise.allSettled([
-          axios.get(`${baseUrl}/admin/image/metrics`, { headers }),
-          axios.get(`${baseUrl}/admin/image/confusion_matrix`, { headers, responseType: 'blob' })
-        ]);
-
-        if (metricsRes.status === 'fulfilled') setMetrics(metricsRes.value.data);
-        if (matrixRes.status === 'fulfilled') {
-          setConfusionMatrixUrl(URL.createObjectURL(matrixRes.value.data));
-        }
-      } catch (error) {
-        console.error("Error fetching Image AI data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [keycloak?.token, selectedModel]);
-
-  if (loading && !metrics) return <div className="text-center text-gray-400 p-8">Loading AI Metrics...</div>;
+  useEffect(() => {
+    if (!selectedId || !keycloak?.token) return;
+    
+    setLoading(true);
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/image/reports/${selectedId}`, {
+      headers: { Authorization: `Bearer ${keycloak.token}` }
+    })
+    .then(res => setFullReport(res.data))
+    .catch(err => console.error("Error fetching full Image report:", err))
+    .finally(() => setLoading(false));
+  }, [selectedId, keycloak?.token]);
 
   return (
     <div className="space-y-6">
-      <GlassEffect className="p-4 rounded-2xl flex items-center gap-4">
-        <label htmlFor="image-model-select" className="text-sm font-medium text-gray-300 whitespace-nowrap">Select Vision Model:</label>
-        <select
-          id="image-model-select"
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
-          className="flex-1 max-w-md px-4 py-2 bg-black/40 text-white border border-white/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-        >
-          {availableModels.map((model) => (
-            <option key={model} value={model.split(' ')[0]}>{model}</option>
-          ))}
-        </select>
-      </GlassEffect>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <GlassEffect className="p-6 rounded-2xl">
-          <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-            Classification Report
-          </h3>
-          {metrics ? (
-             <div className="space-y-4">
-               {Object.entries(metrics).map(([key, value]: [string, any]) => {
-                 if (typeof value === 'object') {
-                   return (
-                     <div key={key} className="p-4 rounded-xl bg-white/5 border border-white/5">
-                        <h4 className="text-sm font-bold text-gray-300 uppercase mb-3">{key}</h4>
-                        <div className="grid grid-cols-3 gap-2 text-xs">
-                           <div className="text-center">
-                             <div className="text-gray-500">Precision</div>
-                             <div className="text-white font-mono">{value.precision?.toFixed(3)}</div>
-                           </div>
-                           <div className="text-center">
-                             <div className="text-gray-500">Recall</div>
-                             <div className="text-white font-mono">{value.recall?.toFixed(3)}</div>
-                           </div>
-                           <div className="text-center">
-                             <div className="text-gray-500">F1-Score</div>
-                             <div className="text-white font-mono">{value['f1-score']?.toFixed(3)}</div>
-                           </div>
-                        </div>
-                     </div>
-                   );
-                 }
-                 return (
-                   <div key={key} className="flex justify-between items-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-                     <span className="text-gray-300 uppercase text-xs font-bold">{key}</span>
-                     <span className="text-blue-300 font-mono font-bold text-lg">{typeof value === 'number' ? value.toFixed(4) : value}</span>
-                   </div>
-                 );
-               })}
-             </div>
-          ) : (
-             <p className="text-gray-500">Metrics not found on server.</p>
-          )}
-        </GlassEffect>
-
-        <GlassEffect className="p-6 rounded-2xl flex flex-col items-center justify-center">
-          <h3 className="text-xl font-bold text-white mb-6 w-full text-left flex items-center gap-2">
-             <span className="w-2 h-2 rounded-full bg-purple-500"></span>
-             Confusion Matrix
-          </h3>
-          {confusionMatrixUrl ? (
-            <div className="relative rounded-xl overflow-hidden border border-white/10 shadow-2xl bg-black/50">
-                <img src={confusionMatrixUrl} alt="Confusion Matrix" className="max-w-full h-auto" />
-            </div>
-          ) : (
-            <div className="text-gray-500 italic py-12">Matrix visualization not available</div>
-          )}
-        </GlassEffect>
+      <div className="flex flex-col md:flex-row md:items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/10 gap-4">
+        <h2 className="text-xl font-bold text-white tracking-tight">Image Analysis Reports</h2>
+        
+        {reportList.length > 0 ? (
+          <select 
+            value={selectedId} 
+            onChange={(e) => setSelectedId(e.target.value)}
+            className="bg-black/60 border border-white/20 text-white rounded-xl px-4 py-2.5 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm min-w-[250px] shadow-xl backdrop-blur-md appearance-none"
+          >
+            {reportList.map(r => (
+              <option key={r.report_id} value={r.report_id}>
+                {r.report_id} {r.created_at ? `(${new Date(r.created_at).toLocaleDateString()})` : ''}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="text-sm text-gray-400">No reports found in DB.</div>
+        )}
       </div>
+
+      {loading && (
+        <div className="p-12 flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+        </div>
+      )}
+
+      {!loading && fullReport && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {fullReport.confusion_matrix_base64 && (
+            <GlassEffect className="p-6 rounded-2xl">
+              <h3 className="text-lg font-medium text-white mb-4">Confusion Matrix</h3>
+              <div className="bg-white/5 rounded-xl border border-white/10 p-2 overflow-hidden flex justify-center">
+                {fullReport.confusion_matrix_base64.includes("Image has not been") ? (
+                  <p className="text-gray-400 p-8 text-center">{fullReport.confusion_matrix_base64}</p>
+                ) : (
+                  <img 
+                    src={`data:image/png;base64,${fullReport.confusion_matrix_base64}`} 
+                    alt={`Confusion Matrix for ${fullReport.report_id}`}
+                    className="max-w-full rounded-lg"
+                  />
+                )}
+              </div>
+            </GlassEffect>
+          )}
+
+          <GlassEffect className="p-6 rounded-2xl flex flex-col h-full">
+            <h3 className="text-lg font-medium text-white mb-4">Metrics</h3>
+            <div className="bg-black/40 rounded-xl border border-white/10 p-4 flex-1 overflow-auto max-h-[400px] custom-scrollbar">
+              <pre className="text-xs text-blue-300/80 font-mono">
+                {JSON.stringify(fullReport.metrics, null, 2)}
+              </pre>
+            </div>
+          </GlassEffect>
+        </div>
+      )}
     </div>
   );
 };
