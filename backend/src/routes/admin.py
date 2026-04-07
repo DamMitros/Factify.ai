@@ -33,41 +33,42 @@ def get_all_users():
     users = list(database[COL_USERS].find({}, {"_id": 0, "password": 0, "secret": 0}))
     return jsonify(users)
 ### A JAKBY TE DWA ENDPOINTY ZŁĄCZYĆ W JEDEN DUŻY?????????????????????????????
-@admin_bp.route('/users/sync', methods=['POST'])
-@role_required('admin')
-def sync_users():
-    try:
-        kc_admin = get_keycloak_admin()
-        kc_users = kc_admin.get_users({})
-        database = db.get_client().get_database(DB_NAME)
-        users_collection = database[COL_USERS]
+#Finalnie jak nie będzie problemów to jest do wyrzucenia, useeffect na froncie poprawiony/nie trzeba laczyc
+# @admin_bp.route('/users/sync', methods=['POST'])
+# @role_required('admin')
+# def sync_users():
+#     try:
+#         kc_admin = get_keycloak_admin()
+#         kc_users = kc_admin.get_users({})
+#         database = db.get_client().get_database(DB_NAME)
+#         users_collection = database[COL_USERS]
 
-        synced = 0
-        for kc_user in kc_users:
-            data = {
-                "keycloakId": kc_user.get("id"),
-                "username": kc_user.get("username"),
-                "email": kc_user.get("email"),
-                "firstName": kc_user.get("firstName"),
-                "lastName": kc_user.get("lastName"),
-                "enabled": kc_user.get("enabled", True),
-                "updatedAt": datetime.utcnow()
-            }
+#         synced = 0
+#         for kc_user in kc_users:
+#             data = {
+#                 "keycloakId": kc_user.get("id"),
+#                 "username": kc_user.get("username"),
+#                 "email": kc_user.get("email"),
+#                 "firstName": kc_user.get("firstName"),
+#                 "lastName": kc_user.get("lastName"),
+#                 "enabled": kc_user.get("enabled", True),
+#                 "updatedAt": datetime.utcnow()
+#             }
 
-            result = users_collection.update_one(
-                {"keycloakId": kc_user.get("id")},
-                {"$set": data, "$setOnInsert": {"createdAt": datetime.utcnow()}},
-                upsert=True
-            )
-            if result.upserted_id or result.modified_count:
-                synced += 1
+#             result = users_collection.update_one(
+#                 {"keycloakId": kc_user.get("id")},
+#                 {"$set": data, "$setOnInsert": {"createdAt": datetime.utcnow()}},
+#                 upsert=True
+#             )
+#             if result.upserted_id or result.modified_count:
+#                 synced += 1
 
-        return jsonify({
-            "message": f"Synced {synced} users from Keycloak",
-            "total": len(kc_users)
-        }), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#         return jsonify({
+#             "message": f"Synced {synced} users from Keycloak",
+#             "total": len(kc_users)
+#         }), 200
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/users/<user_id>/block', methods=['PUT'])
 @role_required('admin')
@@ -86,18 +87,23 @@ def block_user(user_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@admin_bp.route('/users/<email>', methods=['DELETE'])
+@admin_bp.route('/users/<user_id>', methods=['DELETE'])
 @role_required('admin')
-def delete_user(email): #CZEMU USER jest usuwany po mailu, czemu nie jest usuwany user z keycloak
-    database = db.get_client().get_database(DB_NAME)
-    result = database[COL_USERS].delete_one({"email": email})
-    return (
-        jsonify({"message": "User deleted"}),
-        200
-    ) if result.deleted_count else (
-        jsonify({"error": "User not found"}),
-        404
-    )
+def delete_user(user_id):
+    try:
+        kc_admin = get_keycloak_admin()
+        kc_admin.delete_user(user_id=user_id)
+        
+        database = db.get_client().get_database(DB_NAME)
+        result = database[COL_USERS].delete_one({"keycloakId": user_id})
+        
+        if result.deleted_count:
+            return jsonify({"message": "User deleted successfully"}), 200
+        else:
+            return jsonify({"message": "User deleted from Keycloak, but not found in local DB"}), 200
+            
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ENDPOINTY PONIZEJ NIE DZIALAJA LUB ZOSTAŁY STWORZONE NOWE ZAMIENNIKI
 

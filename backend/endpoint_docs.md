@@ -127,7 +127,7 @@ Poniżej znajduję się zestawienie głównych endpointów komunikacyjnych w apl
 
 **`GET`** `/feed/<user_id>/comments`
   * **Opis:** Odczytuje wszystkie komentarze wybranego użytkownika.
-  
+
 ---
 
 ## Panel admina (`/admin`) -> wszystkie endpointy tutaj wymagają roli Admin
@@ -137,9 +137,6 @@ Poniżej znajduję się zestawienie głównych endpointów komunikacyjnych w apl
 
 **`GET`** `/admin/users`
   * **Opis:** Odczytuje dane użytkownika z bazy danych
-
-**`POST`** `/admin/users/sync`
-  * **Opis:** Aktualizuje dane użytkownika w bazie danych na bazie danych z Keycloaka
 
 **`PUT`** `/admin/users/<user_id>/block`
   * **Opis:** Zablokowanie użytkownika na Keycloaku i zapis w bazie danych

@@ -59,19 +59,19 @@ const UserManagement: React.FC = () => {
     fetchUsers();
   }, [keycloak?.token]);
 
-  const handleSync = async () => {
-    setSyncing(true);
-    try {
-      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/sync`, {}, {
-        headers: { Authorization: `Bearer ${keycloak.token}` }
-      });
-      await fetchUsers();
-    } catch (error) {
-      console.error("Sync failed:", error);
-    } finally {
-      setSyncing(false);
-    }
-  };
+  // const handleSync = async () => {
+  //   setSyncing(true);
+  //   try {
+  //     await axios.post(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/sync`, {}, {
+  //       headers: { Authorization: `Bearer ${keycloak.token}` }
+  //     });
+  //     await fetchUsers();
+  //   } catch (error) {
+  //     console.error("Sync failed:", error);
+  //   } finally {
+  //     setSyncing(false);
+  //   }
+  // };
 
   const toggleBlockUser = async (user: User) => {
     try {
@@ -87,20 +87,21 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (email: string) => {
-    if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) return;
+  const handleDeleteUser = async (user: User) => {
+      // if (!confirm(`Are you sure you want to delete user ${user.username} (${user.email})? This action cannot be undone.`)) return;
 
-    try {
-      setUsers(users.filter(u => u.email !== email));
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${email}`, {
-        headers: { Authorization: `Bearer ${keycloak.token}` }
-      });
-    } catch (error) {
-      console.error("Delete user failed:", error);
-      alert("Failed to delete user.");
-      fetchUsers();
-    }
-  };
+      try {
+        setUsers(users.filter(u => u.keycloakId !== user.keycloakId));
+        
+        await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/admin/users/${user.keycloakId}`, {
+          headers: { Authorization: `Bearer ${keycloak.token}` }
+        });
+      } catch (error) {
+        console.error("Delete user failed:", error);
+        // alert("Failed to delete user.");
+        fetchUsers();
+      }
+    };
 
   const fetchUserHistory = async (user: User) => {
     setSelectedUser(user);
@@ -120,7 +121,7 @@ const UserManagement: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-white tracking-tight">Users</h2>
         <button onClick={handleSync} disabled={syncing} className={`px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 ${syncing ? 'opacity-50 cursor-not-allowed' : ''}`}>
           {syncing ? (
@@ -130,7 +131,7 @@ const UserManagement: React.FC = () => {
           )}
           Sync with Keycloak
         </button>
-      </div>
+      </div> */}
 
       <GlassEffect className="rounded-2xl overflow-hidden border border-white/10">
         <div className="overflow-x-auto">
@@ -183,7 +184,7 @@ const UserManagement: React.FC = () => {
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                     </button>
                     <button 
-                        onClick={() => handleDeleteUser(user.email)}
+                        onClick={() => handleDeleteUser(user)}
                         title="Delete User"
                         className="p-2 rounded-lg bg-white/5 hover:bg-red-500/20 text-gray-400 hover:text-red-400 border border-transparent hover:border-red-500/30 transition-all"
                     >
