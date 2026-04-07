@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g, current_app
 from werkzeug.exceptions import BadRequest, NotFound, Forbidden
 from bson import ObjectId
 from datetime import datetime
-from keycloak_client import require_auth
+from keycloak_client import require_auth, role_required
 from common.python import db
 from config import DB_NAME, COL_ANALYSIS_AI_TEXT, COL_ANALYSIS_AI_IMAGE, COL_POSTS,COL_COMMENTS
 
@@ -241,3 +241,17 @@ def update_comment(comment_id):
   )
   
   return jsonify({"success": True})
+
+@social_bp.route("/feed/<user_id>/posts", methods=["GET"])
+@role_required("admin")
+def get_user_posts(user_id):
+  posts_cursor = db.get_database(DB_NAME)[COL_POSTS].find({"user_id": user_id}).sort("created_at", -1)
+  posts = [serialize_doc(doc) for doc in posts_cursor]
+  return jsonify(posts)
+
+@social_bp.route("/feed/<user_id>/comments", methods=["GET"])
+@role_required("admin")
+def get_user_comments(user_id):
+  comments_cursor = db.get_database(DB_NAME)[COL_COMMENTS].find({"user_id": user_id}).sort("created_at", -1)
+  comments = [serialize_doc(doc) for doc in comments_cursor]
+  return jsonify(comments)
