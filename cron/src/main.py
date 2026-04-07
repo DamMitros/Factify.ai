@@ -14,6 +14,7 @@ from common.python.llm import LLM
 from context import TaskContext
 from types_ import TaskPayload
 from config import DB_NAME, COL_CRON_TASKS
+from sync_reports import sync_all_reports
 
 TaskHandlerFunction = Callable[[TaskPayload, TaskContext], Any]
 
@@ -128,6 +129,14 @@ def loop(col: Collection) -> None:
 
 if __name__ == "__main__":
     db.init_standalone()
+
+    try:
+        print("Begin to sync existing reports to db...")
+        sync_all_reports()
+        print("Successfully synced existing reports to db.")
+    except Exception as e:
+        print("Error during syncing existing reports to db.")
+        print(e)
 
     database = db.get_database(DB_NAME)
     tasks = database[TASKS_COLLECTION]

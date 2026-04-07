@@ -8,3 +8,8 @@ COL_ANALYSIS_AI_IMAGE = "analysis_ai_image"
 COL_ANALYSIS_MANIPULATION = "analysis_manipulation"
 COL_ANALYSIS_SOURCES = "analysis_sources"
 COL_CRON_TASKS = "cron_tasks"
+COL_REPORTS_NLP = "reports_nlp"
+COL_REPORTS_IMAGE = "reports_image"
+
+NLP_REPORTS_DIR = "/app/jobs/analyze/nlp/artifacts/reports"
+IMAGE_REPORTS_DIR = "/app/jobs/analyze_image/image_detection/artifacts/reports"
