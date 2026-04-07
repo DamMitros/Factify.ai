@@ -120,6 +120,14 @@ Poniżej znajduję się zestawienie głównych endpointów komunikacyjnych w apl
 **`PUT`** `/social/feed/comments/<comment_id>`
   * **Opis:** Edycja komentarza o podanym ID
 
+**ADMIN REQUIRED** -> endpointy tylko dla admina
+
+**`GET`** `/feed/<user_id>/posts`
+  * **Opis:** Odczytuje wszystkie posty wybranego użytkownika.
+
+**`GET`** `/feed/<user_id>/comments`
+  * **Opis:** Odczytuje wszystkie komentarze wybranego użytkownika.
+  
 ---
 
 ## Panel admina (`/admin`) -> wszystkie endpointy tutaj wymagają roli Admin
