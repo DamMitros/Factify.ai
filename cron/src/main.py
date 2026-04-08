@@ -10,7 +10,7 @@ from pymongo import ReturnDocument
 from pymongo.collection import Collection
 
 from common.python import db
-from common.python.llm import LLM
+from llm import LLM
 from context import TaskContext
 from types_ import TaskPayload
 from config import DB_NAME, COL_CRON_TASKS
