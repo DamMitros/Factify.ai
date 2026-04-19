@@ -36,3 +36,6 @@ cron = [
     "google-genai==1.60.0",
     "openai==2.15.0",
 ]
+dev = [
+    "datasets>=4.8.4",
+]
