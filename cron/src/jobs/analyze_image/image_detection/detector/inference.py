@@ -31,32 +31,8 @@ class ImageDetector:
                 f"Wytrenuj model używając training.py lub pobierz z releases."
             )
         
-        # model = create_model()
-        model = create_model(pretrained=False)
-        state_dict = torch.load(self.model_path, map_location=self.device)
-        
-        # FIX: Check if we are loading a state_dict or the whole model
-        if isinstance(state_dict, dict):
-            # Try to load state_dict, but if it fails due to architecture mismatch,
-            # it might be because the model was saved differently
-            try:
-                model.load_state_dict(state_dict)
-            except RuntimeError as e:
-                print(f"Direct load failed: {e}. Trying fuzzy load...")
-                # Handle potential key mismatch (e.g. model. prefix)
-                new_state_dict = {}
-                for k, v in state_dict.items():
-                    name = k.replace("model.", "") # remove `model.` prefix if it exists
-                    new_state_dict[name] = v
-                model.load_state_dict(new_state_dict, strict=False)
-        else:
-            model = state_dict
-            
-        model.to(self.device)
-        model.eval()
-        
-        print(f"✓ Model załadowany z: {self.model_path}")
-        return model
+        from .model_utils import load_model
+        return load_model(self.model_path, device=self.device)
     
     def predict(self, image):
        
