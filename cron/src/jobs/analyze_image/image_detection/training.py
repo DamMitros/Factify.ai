@@ -27,12 +27,7 @@ except ImportError:
 print("Ładuję zbiór danych z Hugging Face...")
 dataset_hf_full = load_dataset("Hemg/AI-Generated-vs-Real-Images-Datasets", split='train')
 
-MAX_SAMPLES = 20000
-if len(dataset_hf_full) > MAX_SAMPLES:
-    print(f"Ograniczam zbiór z {len(dataset_hf_full)} do {MAX_SAMPLES} losowych zdjęć...")
-    dataset_hf = dataset_hf_full.shuffle(seed=42).select(range(MAX_SAMPLES))
-else:
-    dataset_hf = dataset_hf_full
+dataset_hf = dataset_hf_full
 
 class HFDatasetWrapper(Dataset):
     """Wrapper dla Hugging Face Dataset do użycia z PyTorch."""
