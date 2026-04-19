@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 
-from common.python.llm import LLM
+from llm import LLM
 
 
 class TaskContext:

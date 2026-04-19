@@ -4,7 +4,7 @@ from bson import ObjectId
 
 from keycloak_client import require_auth, role_required
 from common.python import db
-from config import DB_NAME, COL_CRON_TASKS, COL_ANALYSIS_AI_TEXT
+from config import DB_NAME, COL_CRON_TASKS, COL_ANALYSIS_AI_TEXT, COL_USERS
 from utils import extract_request_text
 
 ai_text_bp = Blueprint("ai", __name__)
@@ -157,23 +157,31 @@ def get_ai_predictions_all_users():
     try:
         database = db.get_database(DB_NAME)
         collection = database[COL_ANALYSIS_AI_TEXT]
+        users_map = {u.get("keycloakId"): u.get("username") for u in database[COL_USERS].find({"keycloakId": {"$exists": True}})}
 
         cursor = collection.find().sort("_id", -1)
 
-        results = [
-            {
+        results = []
+        for doc in cursor:
+            created_at = doc.get("timestamp") or doc.get("created_at")
+            if not created_at and getattr(doc.get("_id"), "generation_time", None):
+                created_at = doc.get("_id").generation_time.isoformat()
+                
+            user_id = doc.get("user_id")
+
+            results.append({
                 "id": str(doc.get("_id")),
                 "text": doc.get("text"),
                 "ai_probability": doc.get("ai_probability"),
                 "human_probability": 100 - doc.get("ai_probability", 0),
-                "created_at": doc.get("timestamp"),
+                "created_at": created_at,
                 "segments": doc.get("segments"),
                 "overall": doc.get("overall"),
                 "confidence": doc.get("overall", {}).get("confidence"),
                 "type": "text",
-            }
-            for doc in cursor
-        ]
+                "user_id": user_id,
+                "username": users_map.get(user_id, "Deleted user") if user_id else "Deleted user"
+            })
 
         return jsonify(results)
     except Exception as e:

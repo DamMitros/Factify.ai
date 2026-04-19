@@ -24,32 +24,35 @@ def get_user_data():
 @require_auth
 def register_user_in_mongodb():
     try:
-
         users_collection = get_database(DB_NAME)[COL_USERS]
-
         keycloak_id = g.user.get("sub")
 
-        existing_user = users_collection.find_one({"keycloakId": keycloak_id})
-        if existing_user:
-            return jsonify({"message": "User already registered in database"}), 200 #idempodentny ehh nw czy to git
-        
-        user_object = {
-            "keycloakId": keycloak_id, # bedzie i id z mongo i keycloak id narazie
+        update_data = {
             "username": g.user.get("preferred_username"),
             "email": g.user.get("email"),
             "firstName": g.user.get("given_name"),
             "lastName": g.user.get("family_name"),
-            "createdAt": datetime.utcnow(),
             "updatedAt": datetime.utcnow(),
-            #do dodania nw np liczba analiz, preferencje whatever
+            "enabled": g.user.get("enabled", True)
         }
 
-        result = users_collection.insert_one(user_object)
-            
-        return jsonify({
-            "message": "User registered successfully",
-            "userMongoId": str(result.inserted_id)
-        }), 201
+        result = users_collection.update_one(
+            {"keycloakId": keycloak_id},
+            {
+                "$set": update_data,
+                "$setOnInsert": {"createdAt": datetime.utcnow(), "keycloakId": keycloak_id}
+            },
+            upsert=True
+        )
+
+        if result.upserted_id:
+            return jsonify({
+                "message": "User registered successfully", 
+                "userMongoId": str(result.upserted_id)
+            }), 201
+        else:
+            return jsonify({"message": "User updated/synced in database"}), 200
+
     except Exception as e:
         return jsonify({"message": f"Registration failure {str(e)}"}), 500
 
