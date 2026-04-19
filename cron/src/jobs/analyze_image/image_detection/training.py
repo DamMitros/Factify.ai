@@ -1,7 +1,6 @@
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader, random_split, Dataset
-from torchvision import datasets
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,12 +10,48 @@ import json
 from detector.config import (
     DATA_DIR, BATCH_SIZE, EPOCHS, LEARNING_RATE, PATIENCE, 
     DEVICE, TRAIN_TRANSFORM, VAL_TRANSFORM, MODELS_DIR, BEST_MODEL_PATH,
-    REPORTS_DIR
+    REPORTS_DIR, CONFUSION_MATRIX_V2, CLASSIFICATION_REPORT_V2, FINAL_MODEL_PATH_V2,
+    BEST_MODEL_PATH_V2
 )
 from detector.model_utils import create_model, save_model, load_model
 
+TRAIN_FROM_SCRATCH = True
+
+try:
+    from datasets import load_dataset
+except ImportError:
+    print("Błąd: Biblioteka 'datasets' nie jest zainstalowana. Uruchom: pip install datasets")
+    raise
+
+# Ładowanie danych z Hugging Face
+print("Ładuję zbiór danych z Hugging Face...")
+dataset_hf_full = load_dataset("Hemg/AI-Generated-vs-Real-Images-Datasets", split='train')
+
+MAX_SAMPLES = 20000
+if len(dataset_hf_full) > MAX_SAMPLES:
+    print(f"Ograniczam zbiór z {len(dataset_hf_full)} do {MAX_SAMPLES} losowych zdjęć...")
+    dataset_hf = dataset_hf_full.shuffle(seed=42).select(range(MAX_SAMPLES))
+else:
+    dataset_hf = dataset_hf_full
+
+class HFDatasetWrapper(Dataset):
+    """Wrapper dla Hugging Face Dataset do użycia z PyTorch."""
+    def __init__(self, hf_dataset):
+        self.dataset = hf_dataset
+        self.class_names = ['ai', 'real']
+        
+    def __len__(self):
+        return len(self.dataset)
+        
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        return item['image'], item['label']
+
+dataset_full = HFDatasetWrapper(dataset_hf)
+class_names = dataset_full.class_names
+print(f"Załadowano {len(dataset_full)} obrazów z HF.")
+
 print(f"Używam urządzenia: {DEVICE}")
-print(f"Katalog z danymi: {DATA_DIR}")
 print(f"Katalog na modele: {MODELS_DIR}")
 
 def plot_confusion_matrix(y_true, y_pred, classes, save_path):
@@ -44,59 +79,67 @@ def plot_confusion_matrix(y_true, y_pred, classes, save_path):
     plt.close()
     print(f"✓ Confusion matrix zapisana: {save_path}")
 
-class TransformSubset(Dataset):
-    """Dataset wrapper do aplikowania różnych transformacji na train/val."""
-    def __init__(self, base_dataset, indices, transform):
-        self.base_dataset = base_dataset
+# Dataset z transformacjami
+class TransformDataset(Dataset):
+    """Aplikuje transformacje na obrazach z HF Dataset."""
+    def __init__(self, hf_dataset, indices, transform):
+        self.hf_dataset = hf_dataset
         self.indices = indices
         self.transform = transform
         
-    def __getitem__(self, idx):
-        img_path, label = self.base_dataset.samples[self.indices[idx]]
-        img = self.base_dataset.loader(img_path)
-        
-        if self.transform:
-            img = self.transform(img)
-        
-        return img, label
-    
     def __len__(self):
         return len(self.indices)
-
-
-# Dataset bez augmentacji dla podziału
-dataset_raw = datasets.ImageFolder(root=str(DATA_DIR))
-class_names = dataset_raw.classes
-print("MAPA KLAS:", dataset_raw.class_to_idx)
+        
+    def __getitem__(self, idx):
+        actual_idx = self.indices[idx]
+        item = self.hf_dataset[actual_idx]
+        image = item['image']
+        label = item['label']
+        
+        # Upewnij się, że to RGB PIL Image
+        if not hasattr(image, 'mode') or image.mode != 'RGB':
+            image = image.convert('RGB')
+            
+        if self.transform:
+            image = self.transform(image)
+            
+        return image, label
 
 # Podział na train/val
-train_size = int(0.8 * len(dataset_raw))
-val_size = len(dataset_raw) - train_size
-train_indices, val_indices = random_split(range(len(dataset_raw)), [train_size, val_size])
+print(f"Dzielę zbiór {len(dataset_hf)} obrazów na train/val...")
+indices = list(range(len(dataset_hf)))
+train_size = int(0.8 * len(indices))
+val_size = len(indices) - train_size
+train_indices, val_indices = random_split(indices, [train_size, val_size])
 
 # Zastosowanie transformacji
-train_ds = TransformSubset(dataset_raw, train_indices.indices, TRAIN_TRANSFORM)
-val_ds = TransformSubset(dataset_raw, val_indices.indices, VAL_TRANSFORM)
+train_ds = TransformDataset(dataset_hf, train_indices.indices, TRAIN_TRANSFORM)
+val_ds = TransformDataset(dataset_hf, val_indices.indices, VAL_TRANSFORM)
 
 train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
 val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
 # Model - opcja załadowania istniejącego
-if BEST_MODEL_PATH.exists():
+if not TRAIN_FROM_SCRATCH and BEST_MODEL_PATH.exists():
     print(f"Wykryto istniejący model, ładuję do dalszego treningu: {BEST_MODEL_PATH}")
     model = load_model(BEST_MODEL_PATH, device=DEVICE)
-    # Odmrożenie parametrów, bo zakładamy że chcemy go dotrenować
     for param in model.parameters():
         param.requires_grad = True
+    load_success = True
 else:
-    print("Tworzę nowy model.")
+    if TRAIN_FROM_SCRATCH:
+        print("Trening od zera (wymuszony przez flagę TRAIN_FROM_SCRATCH).")
+    else:
+        print("Brak istniejącego modelu, tworzę nowy model.")
     model = create_model()
     model.to(DEVICE)
+    load_success = False
 
 print(f"Model: {model.__class__.__name__}")
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE/10 if BEST_MODEL_PATH.exists() else LEARNING_RATE)
+current_lr = LEARNING_RATE if not load_success else LEARNING_RATE/10
+optimizer = optim.Adam(model.parameters(), lr=current_lr)
 scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2)
 
 # Trening
@@ -146,41 +189,34 @@ for epoch in range(EPOCHS):
     
     scheduler.step(avg_val_loss)
     
-    # Zapisanie najlepszego modelu
     if acc > best_acc:
         best_acc = acc
-        save_model(model, BEST_MODEL_PATH)
+        save_model(model, BEST_MODEL_PATH_V2)
         print(f"  ✓ Nowy najlepszy model! acc={acc:.3f}")
         patience_counter = 0
         
-        # Generuj raport i macierz dla najlepszego modelu
-        plot_confusion_matrix(all_labels, all_preds, class_names, REPORTS_DIR / "confusion_matrix_best.png")
+        plot_confusion_matrix(all_labels, all_preds, class_names, CONFUSION_MATRIX_V2)
         report = classification_report(all_labels, all_preds, target_names=class_names, output_dict=True)
-        with open(REPORTS_DIR / "classification_report_best.json", "w") as f:
+        with open(CLASSIFICATION_REPORT_V2, "w") as f:
             json.dump(report, f, indent=4)
     else:
         patience_counter += 1
     
-    # Fine-tuning logic dla nowego modelu
-    if not BEST_MODEL_PATH.exists() and epoch == 4:
+    if not load_success and epoch == 4:
         print("  → Odmrażam backbone dla lepszego fine-tuningu...")
         for param in model.features.parameters():
             param.requires_grad = True
-        # Nie resetujemy całkiem optimizera, ale scheduler i LR mogą być skorygowane
-    
-    # Early stopping
+
     if patience_counter >= PATIENCE:
         print(f"Early stopping: brak poprawy przez {PATIENCE} epok")
         break
 
-# Zapisanie ostatniego modelu
-final_model_path = MODELS_DIR / "ai_vs_real_final.pth"
+final_model_path = FINAL_MODEL_PATH_V2
 save_model(model, final_model_path)
 print(f"\n✓ Model z ostatniej epoki: {final_model_path}")
-print(f"✓ Najlepszy model (acc={best_acc:.3f}): {BEST_MODEL_PATH}")
+print(f"✓ Najlepszy model (acc={best_acc:.3f}): {BEST_MODEL_PATH_V2}")
 
 
-# Funkcja do testowania
 def predict(image_path):
     """Testowa funkcja predykcji."""
     from detector.inference import ImageDetector

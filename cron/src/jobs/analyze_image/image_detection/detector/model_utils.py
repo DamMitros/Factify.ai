@@ -49,7 +49,7 @@ def save_model(model, save_path):
 
 def load_model(model_path, device='cpu'):
     """
-    Załaduj model z pliku.
+    Załaduj model z pliku z obsługą prefiksów i niezgodności kluczy.
     
     Args:
         model_path: Ścieżka do modelu
@@ -58,9 +58,28 @@ def load_model(model_path, device='cpu'):
     Returns:
         model: Załadowany model
     """
-    model = create_model()
-    state_dict = torch.load(model_path, map_location=device)
-    model.load_state_dict(state_dict)
+    model = create_model(pretrained=False)
+    try:
+        state_dict = torch.load(model_path, map_location=device)
+    except Exception as e:
+        raise RuntimeError(f"Błąd podczas ładowania pliku modelu {model_path}: {e}")
+
+    if isinstance(state_dict, dict):
+        # Usuń 'model.' lub 'module.' i klucze num_batches_tracked
+        new_state_dict = {}
+        for k, v in state_dict.items():
+            name = k.replace("model.", "").replace("module.", "")
+            if "num_batches_tracked" not in name:
+                new_state_dict[name] = v
+        
+        try:
+            model.load_state_dict(new_state_dict, strict=True)
+        except RuntimeError as e:
+            print(f"Direct load failed: {e}. Trying strict=False...")
+            model.load_state_dict(new_state_dict, strict=False)
+    else:
+        model = state_dict
+
     model.to(device)
     model.eval()
     

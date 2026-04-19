@@ -15,10 +15,14 @@ ARTIFACTS_DIR.mkdir(exist_ok=True)
 REPORTS_DIR.mkdir(exist_ok=True)
 
 
-BEST_MODEL_PATH = MODELS_DIR / "ai_vs_real_best.pth"
+BEST_MODEL_PATH = MODELS_DIR / "ai_vs_real_best_v2.pth"
+BEST_MODEL_PATH_V2 = MODELS_DIR / "ai_vs_real_best_v2.pth"
+FINAL_MODEL_PATH_V2 = MODELS_DIR / "ai_vs_real_final_v2.pth"
+CONFUSION_MATRIX_V2 = REPORTS_DIR / "confusion_matrix_v2.png"
+CLASSIFICATION_REPORT_V2 = REPORTS_DIR / "classification_report_v2.json"
 
 
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 35
 LEARNING_RATE = 0.001
 PATIENCE = 10
@@ -43,4 +47,4 @@ VAL_TRANSFORM = transforms.Compose([
 ])
 
 
-CLASS_NAMES = ['ai_generated', 'real']
+CLASS_NAMES = ['ai', 'real']
